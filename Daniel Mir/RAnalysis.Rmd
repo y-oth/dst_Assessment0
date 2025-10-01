@@ -44,6 +44,7 @@ summary(data$runs_off_bat)
 
 
 ```
+
 We can see that batters are fairly conservative with at least half of the balls resulting in no runs and less than 25% being more than singles. Lets see how this compares from one innings to another.
 
 ```{r}
@@ -56,7 +57,8 @@ ggplot(odi_bbb_recent, aes(x = factor(innings), y = runs_off_bat)) +
 
 
 ```
-This is strange - typically ODIs have strictly 2 innings. The 3rd and 4th innings only occur when the match is tied and we go to a 'Super Over' which is why the distribution of Runs off Bat is skewed so much higher for these cases. 
+
+This is strange - typically ODIs have strictly 2 innings. The 3rd and 4th innings only occur when the match is tied and we go to a 'Super Over' which is why the distribution of Runs off Bat is skewed so much higher for these cases.
 
 ```{r}
 bad_match_ids <- data %>%
@@ -68,8 +70,8 @@ print(bad_match_ids)
 
 print(length(bad_match_ids) / length(unique(data$match_id)))
 ```
-There are only 5 matches this has occurred - which is around 0.4% of all matches in our data set. As a result we will ignore it for now. Lets have a look at Innings 1 and 2 in more detail.
 
+There are only 5 matches this has occurred - which is around 0.4% of all matches in our data set. As a result we will ignore it for now. Lets have a look at Innings 1 and 2 in more detail.
 
 ```{r}
 library(dplyr)
@@ -92,7 +94,229 @@ ggplot(runs_dist, aes(x = factor(runs_off_bat), y = prop, fill = factor(innings)
   theme_minimal()
 
 ```
-There doesn't seem to be a significant difference.How about within an innings?
 
+There doesn't seem to be a significant difference.
 
+## Home and Toss advantage
 
+During the literature review I found a paper by Kaluarachchi and Aparna [1] trying to investigate the effects of home advantage and winning the toss on the outcome of the game. I attempt to investigate that relation using this dataset.
+
+### Home vs Away
+
+```{r}
+length(unique(data$venue))
+```
+
+```{r}
+library(dplyr)
+
+venue_country <- tribble(
+  ~venue, ~country,
+  "Hagley Oval", "New Zealand",
+  "Dubai International Cricket Stadium", "UAE",
+  "Seddon Park", "New Zealand",
+  "Sydney Cricket Ground", "Australia",
+  "Kingsmead", "South Africa",
+  "Eden Park", "New Zealand",
+  "New Wanderers Stadium", "South Africa",
+  "Melbourne Cricket Ground", "Australia",
+  "Saxton Oval", "New Zealand",
+  "Brisbane Cricket Ground, Woolloongabba", "Australia",
+  "Buffalo Park", "South Africa",
+  "Bellerive Oval", "Australia",
+  "University Oval", "New Zealand",
+  "St George's Park", "South Africa",
+  "SuperSport Park", "South Africa",
+  "Westpac Stadium", "New Zealand",
+  "Western Australia Cricket Association Ground", "Australia",
+  "McLean Park", "New Zealand",
+  "Adelaide Oval", "Australia",
+  "Manuka Oval", "Australia",
+  "Shere Bangla National Stadium", "Bangladesh",
+  "The Village, Malahide", "Ireland",
+  "Gaddafi Stadium", "Pakistan",
+  "Edgbaston", "England",
+  "Kennington Oval", "England",
+  "The Rose Bowl", "England",
+  "Trent Bridge", "England",
+  "Riverside Ground", "England",
+  "Zahur Ahmed Chowdhury Stadium", "Bangladesh",
+  "Harare Sports Club", "Zimbabwe",
+  "Rangiri Dambulla International Stadium", "Sri Lanka",
+  "Pallekele International Cricket Stadium", "Sri Lanka",
+  "R Premadasa Stadium", "Sri Lanka",
+  "Mahinda Rajapaksa International Cricket Stadium, Sooriyawewa", "Sri Lanka",
+  "Senwes Park", "South Africa",
+  "Civil Service Cricket Club, Stormont", "Northern Ireland",  # Stormont, Belfast
+  "Lord's", "England",
+  "Old Trafford", "England",
+  "Headingley", "England",
+  "Green Park", "India",
+  "Holkar Cricket Stadium", "India",
+  "Saurashtra Cricket Association Stadium", "India",
+  "MA Chidambaram Stadium, Chepauk", "India",
+  "Wankhede Stadium", "India",
+  "Sheikh Zayed Stadium", "UAE",
+  "Sharjah Cricket Stadium", "UAE",
+  "ICC Academy", "UAE",
+  "Bay Oval", "New Zealand",
+  "Basin Reserve", "New Zealand",
+  "Mangaung Oval", "South Africa",
+  "Newlands", "South Africa",
+  "Providence Stadium", "West Indies",
+  "Warner Park, Basseterre", "West Indies",
+  "Kensington Oval, Bridgetown", "West Indies",
+  "County Ground", "England",
+  "Sophia Gardens", "Walesm",
+  "Grange Cricket Club Ground, Raeburn Place", "Scotland",
+  "Willowmoore Park", "South Africa",
+  "Himachal Pradesh Cricket Association Stadium", "India",
+  "Punjab Cricket Association Stadium, Mohali", "India",
+  "JSCA International Stadium Complex", "India",
+  "Dr. Y.S. Rajasekhara Reddy ACA-VDCA Cricket Stadium", "India",
+  "Mission Road Ground, Mong Kok", "Hong Kong",
+  "Queens Sports Club", "Zimbabwe",
+  "Maharashtra Cricket Association Stadium", "India",
+  "Barabati Stadium", "India",
+  "Eden Gardens", "India",
+  "ICC Global Cricket Academy", "UAE",
+  "Sir Vivian Richards Stadium, North Sound", "West Indies",
+  "Sinhalese Sports Club Ground", "Sri Lanka",
+  "Malahide", "Ireland",
+  "Clontarf Cricket Club Ground", "Ireland",
+  "Queen's Park Oval, Port of Spain", "West Indies",
+  "Galle International Stadium", "Sri Lanka",
+  "Sabina Park, Kingston", "West Indies",
+  "The Cooper Associates County Ground", "England",
+  "Bready Cricket Club, Magheramason", "Northern Ireland",
+  "R.Premadasa Stadium, Khettarama", "Sri Lanka",
+  "Providence Stadium, Guyana", "West Indies",
+  "Queen's Park Oval, Trinidad", "West Indies",
+  "Mannofield Park", "Scotland",
+  "Sportpark Het Schootsveld", "Netherlands",
+  "Central Broward Regional Park Stadium Turf Ground", "USA",
+  "National Stadium", "Pakistan",
+  "Grange Cricket Club, Raeburn Place", "Scotland",
+  "Castle Avenue", "Ireland",
+  "Affies Park", "South Africa",
+  "Wanderers Cricket Ground", "Namibia",  # or South Africa depending on context
+  "Arun Jaitley Stadium", "India",
+  "Al Amerat Cricket Ground Oman Cricket (Ministry Turf 1)", "Oman",
+  "Vidarbha Cricket Association Stadium, Jamtha", "India",
+  "The Wanderers Stadium", "South Africa",
+  "Darren Sammy National Cricket Stadium, St Lucia", "West Indies",
+  "Kensington Oval, Barbados", "West Indies",
+  "National Cricket Stadium, Grenada", "West Indies",
+  "M.Chinnaswamy Stadium", "India",
+  "Tribhuvan University International Cricket Ground", "Nepal",
+  "Boland Park", "South Africa",
+  "Sylhet International Cricket Stadium", "Bangladesh",
+  "Rajiv Gandhi International Stadium, Uppal", "India",
+  "Shere Bangla National Stadium, Mirpur", "Bangladesh",
+  "Perth Stadium", "Australia",
+  "Greenfield International Stadium", "India",
+  "Diamond Oval", "South Africa",
+  "Old Hararians", "Zimbabwe",
+  "Bulawayo Athletic Club", "Zimbabwe",
+  "Punjab Cricket Association IS Bindra Stadium, Mohali", "India",
+  "Cobham Oval (New)", "New Zealand",
+  "Kinrara Academy Oval", "Malaysia",
+  "Barsapara Cricket Stadium", "India",
+  "Rawalpindi Cricket Stadium", "Pakistan",
+  "Sir Vivian Richards Stadium", "West Indies",
+  "SuperSport Park, Centurion", "South Africa",
+  "Hazelaarweg, Rotterdam", "Netherlands",
+  "Kennington Oval, London", "England",
+  "Lord's, London", "England",
+  "The Village, Malahide, Dublin", "Ireland",
+  "Edgbaston, Birmingham", "England",
+  "Kensington Oval, Bridgetown, Barbados", "West Indies",
+  "R Premadasa Stadium, Colombo", "Sri Lanka",
+  "Al Amerat Cricket Ground Oman Cricket (Ministry Turf 2)", "Oman",
+  "Sabina Park, Kingston, Jamaica", "Jamaica",
+  "Boland Park, Paarl", "South Africa",
+  "Narendra Modi Stadium, Ahmedabad", "India",
+  "Shere Bangla National Stadium, Dhaka", "Bangladesh",
+  "Eden Park, Auckland", "New Zealand",
+  "Hagley Oval, Christchurch", "New Zealand",
+  "United Cricket Club Ground, Windhoek", "Namibia",
+  "Zahur Ahmed Chowdhury Stadium, Chattogram", "Bangladesh",
+  "Barsapara Cricket Stadium, Guwahati", "India",
+  "Greenfield International Stadium, Thiruvananthapuram", "India",
+  "Eden Gardens, Kolkata", "India",
+  "Rajiv Gandhi International Stadium, Uppal, Hyderabad", "India",
+  "Shaheed Veer Narayan Singh International Stadium, Raipur", "India",
+  "Holkar Cricket Stadium, Indore", "India",
+  "Mangaung Oval, Bloemfontein", "South Africa",
+  "Diamond Oval, Kimberley", "South Africa",
+  "Buffalo Park, East London", "South Africa",
+  "Wankhede Stadium, Mumbai", "India",
+  "Dr. Y.S. Rajasekhara Reddy ACA-VDCA Cricket Stadium, Visakhapatnam", "India",
+  "Senwes Park, Potchefstroom", "South Africa",
+  "MA Chidambaram Stadium, Chepauk, Chennai", "India",
+  "Willowmoore Park, Benoni", "South Africa",
+  "National Stadium, Karachi", "Pakistan",
+  "County Ground, Chelmsford", "England",
+  "Queens Sports Club, Bulawayo", "Zimbabwe",
+  "Takashinga Sports Club, Highfield, Harare", "Zimbabwe",
+  "Brian Lara Stadium, Tarouba, Trinidad", "West Indies",
+  "The Rose Bowl, Southampton", "England",
+  "Sedgars Park, Potchefstroom", "South Africa",
+  "Punjab Cricket Association IS Bindra Stadium, Mohali, Chandigarh", "India",
+  "Trent Bridge, Nottingham", "England",
+  "Saurashtra Cricket Association Stadium, Rajkot", "India",
+  "Himachal Pradesh Cricket Association Stadium, Dharamsala", "India",
+  "Maharashtra Cricket Association Stadium, Pune", "India",
+  "M Chinnaswamy Stadium, Bengaluru", "India",
+  "Choice Moosa Stadium, Pearland", "USA",
+  "Multan Cricket Stadium", "Pakistan",
+  "Mulpani Cricket Ground", "Nepal",
+  "Feroz Shah Kotla", "India",   # now renamed Arun Jaitley Stadium, but still in Delhi
+  "Sir Vivian Richards Stadium, North Sound, Antigua", "West Indies",
+  "University Oval, Dunedin", "New Zealand",
+  "St George's Park, Gqeberha", "South Africa",
+  "Saxton Oval, Nelson", "New Zealand",
+  "McLean Park, Napier", "New Zealand",
+  "Manuka Oval, Canberra", "Australia",
+  "Forthill, Dundee", "Scotland",
+  "Sportpark Westvliet, The Hague", "Netherlands",
+  "Sher-e-Bangla National Cricket Stadium", "Bangladesh",
+  "Maple Leaf North-West Ground, King City", "Canada",
+  "Zayed Cricket Stadium, Abu Dhabi", "UAE",
+  "Grand Prairie Stadium, Dallas", "USA",
+  "Warner Park, Basseterre, St Kitts", "West Indies",
+  "Basin Reserve, Wellington", "New Zealand",
+  "Brabourne Stadium", "India",
+  "Vidarbha Cricket Association Stadium, Jamtha, Nagpur", "India",
+  "Barabati Stadium, Cuttack", "India",
+  "Central Broward Regional Park Stadium Turf Ground, Lauderhill", "USA",
+  "Castle Avenue, Dublin", "Ireland",
+  "Great Barrier Reef Arena, Mackay", "Australia"
+)
+
+data <- data %>%
+  select(-starts_with("country")) %>%    # remove all country columns
+  left_join(venue_country, by = "venue") # join fresh
+
+# Check if any venues did not get matched
+unmatched <- data %>%
+  filter(is.na(country)) %>%
+  distinct(venue)
+
+print(unmatched)
+
+```
+
+I attempted to investigate Home vs Away Advantage by using ChatGPT to write a script to convert venue into country however it continued to miss venues and was unreliable so I scrapped that idea.
+
+```{r}
+data <- data %>%
+  select(-starts_with("country"))
+glimpse(data)
+```
+
+### Winning the Toss
+
+## References
+
+[1] A. Kaluarachchi and S. V. Aparna, "CricAI: A classification based tool to predict the outcome in ODI cricket," 2010 Fifth International Conference on Information and Automation for Sustainability, Colombo, Sri Lanka, 2010, pp. 250-25
