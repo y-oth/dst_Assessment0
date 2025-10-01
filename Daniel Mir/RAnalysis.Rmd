@@ -19,3 +19,10 @@ The following library's are required for this document
 ```{r}
 
 ```
+
+## Reading in the data
+
+```{r}
+odi_bbb_recent <- read_csv(path_wd("..", "data", "processed", "odi_bbb_recent.csv"))
+```
+
