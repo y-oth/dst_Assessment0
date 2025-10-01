@@ -19,12 +19,80 @@ The following library's are required for this document
 ```{r}
 library(fs)
 library(readr)
-
+library(ggplot2)
+library(knitr)
 ```
 
 ## Reading in the data
 
 ```{r}
-odi_bbb_recent <- read_csv(path_wd("..", "data", "processed", "odi_bbb_recent.csv"))
+data <- read_csv(path_wd("..", "data", "processed", "odi_bbb_recent.csv"))
 ```
+
+```{r}
+glimpse(data)
+```
+
+## Initial EDA
+
+First I want to get a brief summary of some of some of the variables.
+
+```{r}
+print(sort(unique(data$runs_off_bat)))
+summary(data$runs_off_bat)
+
+
+
+```
+We can see that batters are fairly conservative with at least half of the balls resulting in no runs and less than 25% being more than singles. Lets see how this compares from one innings to another.
+
+```{r}
+
+ggplot(odi_bbb_recent, aes(x = factor(innings), y = runs_off_bat)) +
+  geom_boxplot(fill = "skyblue") +
+  labs(x = "Innings", y = "Runs off the bat",
+       title = "Distribution of runs per ball by innings")
+
+
+
+```
+This is strange - typically ODIs have strictly 2 innings. The 3rd and 4th innings only occur when the match is tied and we go to a 'Super Over' which is why the distribution of Runs off Bat is skewed so much higher for these cases. 
+
+```{r}
+bad_match_ids <- data %>%
+  filter(innings > 2) %>%
+  distinct(match_id) %>%
+  pull()
+
+print(bad_match_ids)
+
+print(length(bad_match_ids) / length(unique(data$match_id)))
+```
+There are only 5 matches this has occurred - which is around 0.4% of all matches in our data set. As a result we will ignore it for now. Lets have a look at Innings 1 and 2 in more detail.
+
+
+```{r}
+library(dplyr)
+
+runs_dist <- data %>%
+  filter(innings %in% c(1, 2)) %>%
+  group_by(innings, runs_off_bat) %>%
+  summarise(count = n(), .groups = "drop") %>%
+  group_by(innings) %>%
+  mutate(prop = count / sum(count))
+
+ggplot(runs_dist, aes(x = factor(runs_off_bat), y = prop, fill = factor(innings))) +
+  geom_col(position = "dodge") +
+  labs(
+    title = "Run Distribution by Innings",
+    x = "Runs Off Bat",
+    y = "Proportion of Balls",
+    fill = "Innings"
+  ) +
+  theme_minimal()
+
+```
+There doesn't seem to be a significant difference.How about within an innings?
+
+
 
