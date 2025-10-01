@@ -8,8 +8,14 @@ date: "2025-10-01"
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+# Daniel's Analysis
+
+## Introduction
+
+The following document contains analysis of the cricket data (From cricsheet, see 01-Data) and written myself in R.
+
+The following library's are required for this document
 
 ```{r}
 
 ```
-
