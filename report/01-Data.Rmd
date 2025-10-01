@@ -2,6 +2,9 @@
 title: "01-Data"
 output: html_document
 date: "2025-09-30"
+editor_options: 
+  markdown: 
+    wrap: 72
 ---
 
 ```{r setup, include=FALSE}
@@ -11,35 +14,37 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r}
 
 library(dplyr)
-library(lubridate)
+library(lubridate) 
 library(cricketdata)
 
-odis_match <- fetch_cricsheet(type = "match", gender = "male", competition = "odis")
+odis_match <- fetch_cricsheet(type = "match", gender = "male", competition = "odis") 
 odi_bbb <- fetch_cricsheet(type = "bbb", gender = "male", competition = "odis")
 
-
-
 # Ensure both match_id are the same type (character is safer)
-odi_bbb <- odi_bbb %>%
-  mutate(start_date = as.Date(start_date),
-         match_id = as.character(match_id))
+
+odi_bbb <- odi_bbb %>% 
+  mutate(start_date = as.Date(start_date), match_id = as.character(match_id))
 
 odis_meta <- odis_match %>%
-  mutate(match_id = as.character(match_id)) %>%
+  mutate(match_id = as.character(match_id)) %>% 
   select(match_id, winner, toss_winner, toss_decision, team1, team2)
 
 # Filter 2015 onwards and join
-odi_bbb_recent <- odi_bbb %>%
-  filter(start_date >= as.Date("2015-01-01")) %>%
-  left_join(odis_meta, by = "match_id")
 
-dir.create("../data/raw", recursive = TRUE, showWarnings = FALSE)
-dir.create("../data/processed", recursive = TRUE, showWarnings = FALSE)
+odi_bbb_recent <- odi_bbb %>% 
+  filter(start_date >= as.Date("2015-01-01")) %>% 
+  left_join(odis_meta, by = "match_id")%>%
+  left_join(player_meta[c("unique_name", "bowling_style")], by = join_by("bowler"=="unique_name"), relationship = "many-to-many")%>%
+  left_join(player_meta[c("unique_name", "batting_style")], by = join_by("striker"=="unique_name"), relationship = "many-to-many")
+
+# dir.create("../data/raw", recursive = TRUE, showWarnings = FALSE)
+# dir.create("../data/processed", recursive = TRUE, showWarnings = FALSE)
 
 # Save processed dataset
-write.csv(odi_bbb_recent,
-          file = "../data/processed/odi_bbb_recent.csv",
-          row.names = FALSE)
 
+# write.csv(odi_bbb_recent,
+
+# file = "../data/processed/odi_bbb_recent.csv",
+
+# row.names = FALSE)
 ```
-
