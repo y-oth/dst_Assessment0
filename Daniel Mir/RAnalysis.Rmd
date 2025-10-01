@@ -17,6 +17,8 @@ The following document contains analysis of the cricket data (From cricsheet, se
 The following library's are required for this document
 
 ```{r}
+library(fs)
+library(readr)
 
 ```
 
