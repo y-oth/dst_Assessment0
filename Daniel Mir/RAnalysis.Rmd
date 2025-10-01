@@ -317,6 +317,22 @@ glimpse(data)
 
 ### Winning the Toss
 
+```{r}
+data %>%
+  mutate(over = floor(ball)) %>%
+  group_by(innings, over) %>%
+  summarise(avg_runs = mean(runs_off_bat + extras, na.rm = TRUE)) %>%
+  ggplot(aes(x = over, y = avg_runs, color = factor(innings))) +
+  geom_line(size = 1) +
+  labs(title = "Average Runs per Over by Innings",
+       x = "Over", y = "Average Runs", color = "Innings") +
+  theme_minimal()
+
+```
+
+
+
+
 ## References
 
 [1] A. Kaluarachchi and S. V. Aparna, "CricAI: A classification based tool to predict the outcome in ODI cricket," 2010 Fifth International Conference on Information and Automation for Sustainability, Colombo, Sri Lanka, 2010, pp. 250-25
