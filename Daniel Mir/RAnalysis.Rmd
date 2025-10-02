@@ -97,9 +97,9 @@ ggplot(runs_dist, aes(x = factor(runs_off_bat), y = prop, fill = factor(innings)
 
 There doesn't seem to be a significant difference.
 
-## Home and Toss advantage
+## Home advantage
 
-During the literature review I found a paper by Kaluarachchi and Aparna [1] trying to investigate the effects of home advantage and winning the toss on the outcome of the game. I attempt to investigate that relation using this dataset.
+During the literature review I found a paper by Kaluarachchi and Aparna [1] trying to investigate the effects of home advantage on the outcome of the game. I attempt to investigate that relation using this dataset.
 
 ### Home vs Away
 
@@ -315,11 +315,11 @@ data <- data %>%
 glimpse(data)
 ```
 
-### Winning the Toss
+## Event Sequence/ Time Series Structure
 
 ```{r}
 data %>%
-  mutate(over = floor(ball)) %>%
+  mutate(over = floor(ball) + 1) %>%
   group_by(innings, over) %>%
   summarise(avg_runs = mean(runs_off_bat + extras, na.rm = TRUE)) %>%
   ggplot(aes(x = over, y = avg_runs, color = factor(innings))) +
@@ -330,9 +330,48 @@ data %>%
 
 ```
 
+```{r}
+data %>%
+  mutate(over = floor(ball)) %>%
+  group_by(toss_decision, over) %>%
+  summarise(avg_runs = mean(runs_off_bat + extras, na.rm = TRUE)) %>%
+  ggplot(aes(x = over, y = avg_runs, color = toss_decision)) +
+  geom_line(size = 1) +
+  labs(title = "Average Runs per Over by Toss Decision",
+       x = "Over", y = "Average Runs", color = "Toss Decision") +
+  theme_minimal()
+
+```
+
+```{r}
+data <- data %>%
+  mutate(over = floor(ball))
+
+data <- data %>%
+  mutate(total_runs = runs_off_bat + ifelse(is.na(extras), 0, extras))
+
+worm_data <- data %>%
+  group_by(match_id, innings, over) %>%
+  summarise(runs = sum(total_runs, na.rm = TRUE), .groups = "drop") %>%
+  group_by(match_id, innings) %>%
+  mutate(cum_runs = cumsum(runs))
+
+ggplot(filter(worm_data, match_id == 749781),
+       aes(x = over, y = cum_runs, colour = factor(innings))) +
+  geom_line(size = 1) +
+  labs(title = "Worm Chart",
+       x = "Over", y = "Cumulative Runs",
+       colour = "Innings")
 
 
+```
+
+```{r}
+glimpse(data)
+```
 
 ## References
 
 [1] A. Kaluarachchi and S. V. Aparna, "CricAI: A classification based tool to predict the outcome in ODI cricket," 2010 Fifth International Conference on Information and Automation for Sustainability, Colombo, Sri Lanka, 2010, pp. 250-25
+
+[2] [ESPNcricinfo](https://www.espncricinfo.com/series/west-indies-in-england-2025-1448331/england-vs-west-indies-1st-odi-1448343/match-statistics)
