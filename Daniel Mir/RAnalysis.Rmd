@@ -317,31 +317,64 @@ glimpse(data)
 
 ## Event Sequence/ Time Series Structure
 
+The ball-by-ball (bbb) cricket data is inherently an event sequence structure which we can index by balls or overs. In this section I aim to demonstrate that structure and investigate any interesting features.
+
 ```{r}
 data %>%
-  mutate(over = floor(ball) + 1) %>%
+  mutate(over = ceiling(ball)) %>%
+  group_by(match_id, innings, over) %>%
+  summarise(over_runs = sum(runs_off_bat + extras, na.rm = TRUE), .groups = "drop") %>%
   group_by(innings, over) %>%
-  summarise(avg_runs = mean(runs_off_bat + extras, na.rm = TRUE)) %>%
+  summarise(avg_runs = mean(over_runs, na.rm = TRUE), .groups = "drop") %>%
   ggplot(aes(x = over, y = avg_runs, color = factor(innings))) +
   geom_line(size = 1) +
-  labs(title = "Average Runs per Over by Innings",
-       x = "Over", y = "Average Runs", color = "Innings") +
+  geom_vline(xintercept = 10, linetype = "dotted", color = "red", size = 1) +
+  geom_vline(xintercept = 40, linetype = "dotted", color = "red", size = 1) +
+  labs(
+    title = "Average Runs per Over by Innings",
+    x = "Over", 
+    y = "Average Runs", 
+    color = "Innings"
+  ) +
   theme_minimal()
 
+
+
 ```
+
+Here we can clearly see the event series structure. There are 3 sections in an ODI cricket game, referring to the restrictions placed on the fielding team. In the first 'Powerplay' the batting team have an advantage, making it easier for them to get boundaries (4s and 6s). We can see this by the slightly increased average runs per over for the first 10 overs (once they get their eye in). We can also see that the average runs per over generally increases with time. At 40 overs the second 'Powerplay' occurs which gives the bowling team the advantage. This period is sometimes referred to as the death and despite the fact that the bowling team has an advantage, the run rate steeply increases, particularly in the first innings. This is because they are taking more risks to attempt to set a high a target for the other team as possible. It also increases in the second innings but less so as they can afford to be more conservative as they know what goal they need to reach.
+
+### Risk taking throughout the match
+
+One way we can attempt to quantify risk taking/ shifts in strategy is by looking at the distribution of boundaries throughout the game. This demonstrates the underlying structure of the previous plot, a higher proportion of boundaries in the first and last 10 overs.
 
 ```{r}
+
 data %>%
-  mutate(over = floor(ball)) %>%
-  group_by(toss_decision, over) %>%
-  summarise(avg_runs = mean(runs_off_bat + extras, na.rm = TRUE)) %>%
-  ggplot(aes(x = over, y = avg_runs, color = toss_decision)) +
-  geom_line(size = 1) +
-  labs(title = "Average Runs per Over by Toss Decision",
-       x = "Over", y = "Average Runs", color = "Toss Decision") +
+  mutate(over = ceiling(ball)) %>%
+  group_by(over) %>%
+  summarise(
+    total_balls = n(),
+    boundaries = sum(runs_off_bat %in% c(4, 6), na.rm = TRUE)
+  ) %>%
+  mutate(boundary_rate = boundaries / total_balls) %>%
+  ggplot(aes(x = over, y = boundary_rate)) +
+  geom_vline(xintercept = 10, linetype = "dashed", color = "red", size = 1) +
+  geom_vline(xintercept = 40, linetype = "dashed", color = "red", size = 1) +
+  geom_col(fill = "steelblue") +
+  scale_y_continuous(labels = scales::percent_format()) +
+  labs(title = "Proportion of Balls that are Boundaries by Over",
+       x = "Over",
+       y = "Boundary Proportion") +
   theme_minimal()
 
+
+
 ```
+
+
+Another way to visualise the event series 
+
 
 ```{r}
 data <- data %>%
@@ -359,16 +392,14 @@ worm_data <- data %>%
 ggplot(filter(worm_data, match_id == 749781),
        aes(x = over, y = cum_runs, colour = factor(innings))) +
   geom_line(size = 1) +
-  labs(title = "Worm Chart",
+  labs(title = "Worm Chart - New Zealand vs Sri Lanka",
        x = "Over", y = "Cumulative Runs",
        colour = "Innings")
 
 
 ```
 
-```{r}
-glimpse(data)
-```
+
 
 ## References
 
