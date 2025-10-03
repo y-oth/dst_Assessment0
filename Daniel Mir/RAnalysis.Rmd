@@ -77,7 +77,6 @@ print(length(bad_match_ids) / length(unique(data$match_id)))
 There are only 5 matches this has occurred - which is around 0.4% of all matches in our data set. As a result we will ignore it for now. Lets have a look at Innings 1 and 2 in more detail.
 
 ```{r}
-library(dplyr)
 
 runs_dist <- data %>%
   filter(innings %in% c(1, 2)) %>%
@@ -111,7 +110,6 @@ length(unique(data$venue))
 ```
 
 ```{r}
-library(dplyr)
 
 venue_country <- tribble(
   ~venue, ~country,
@@ -420,8 +418,8 @@ ggplot(filter(worm_data, match_id == 749781),
 
 
 ```
+Here we can see that the team batting first's (Sri Lanka) run rate (gradient) stays fairly consistent until the last 10 overs where they try to run up their score and the line steepens. For New Zealand, they take advantage of the Powerplay in the first 10 overs and then can play conservatively for the next 30 Overs winning with 6 Overs to spare. Lets see if this is reflected in the distribution of wickets. We would expect Sri Lanka to pick up a lot of wickets in the last 10 overs as they play riskier.
 
-Lets see if we can uncover any other structure within the data by looking at another event - a player getting a wicket - and seeing if that has any effect on the run rate.
 
 ```{r}
 wickets_data <- data %>%
@@ -433,10 +431,9 @@ wickets_data <- data %>%
 ggplot(filter(worm_data, match_id == 749781),
        aes(x = over, y = cum_runs, colour = factor(innings))) +
   geom_line(size = 1) +
-  # Add wickets
   geom_point(data = filter(wickets_data, match_id == 749781),
-             aes(x = over, y = cum_runs),
-             colour = "black", shape = 1, size = 3, stroke = 1.2) +
+             aes(x = over, y = cum_runs, colour = factor(innings)),
+             shape = 1, size = 3, stroke = 1.2) +
   labs(title = "Worm Chart - New Zealand vs Sri Lanka",
        x = "Over", y = "Cumulative Runs",
        colour = "Innings") +
@@ -444,11 +441,8 @@ ggplot(filter(worm_data, match_id == 749781),
 
 ```
 
+We do indeed see increased frequency of wickets in the last 10 overs for Sri Lanka. We can also see that any plateaus of our lines (ie no runs scored), usually indicates a wicket (a player being dismissed).
 
-```{r}
-
-
-```
 
 
 ## References
