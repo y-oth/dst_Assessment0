@@ -24,7 +24,7 @@ library(knitr)
 library(dplyr)
 ```
 
-In the chunks below I used dplyr to allow me to analyse the data more effectively. I used a [cheat sheet](https://posit.co/wp-content/uploads/2022/10/data-transformation.pdf) [3] and the [R for Data Science guide](https://r4ds.had.co.nz/transform.html) [4] to learn how to use the package.
+In the chunks below I used dplyr to allow me to analyse the data more effectively. I used a [cheat sheet](https://posit.co/wp-content/uploads/2022/10/data-transformation.pdf) [3] and the [R for Data Science guide](https://r4ds.had.co.nz/transform.html) [4] to learn how to use the package.As much of the data in this dataset can be grouped by match and as a dataset as a whole it is particularly useful.
 
 ## Reading in the data
 
@@ -52,7 +52,7 @@ We can see that batters are fairly conservative with at least half of the balls 
 
 ```{r}
 
-ggplot(odi_bbb_recent, aes(x = factor(innings), y = runs_off_bat)) +
+ggplot(data, aes(x = factor(innings), y = runs_off_bat)) +
   geom_boxplot(fill = "skyblue") +
   labs(x = "Innings", y = "Runs off the bat",
        title = "Distribution of runs per ball by innings")
@@ -441,7 +441,7 @@ ggplot(filter(worm_data, match_id == 749781),
 
 ```
 
-We do indeed see increased frequency of wickets in the last 10 overs for Sri Lanka. We can also see that any plateaus of our lines (ie no runs scored), usually indicates a wicket (a player being dismissed).
+We do indeed see increased frequency of wickets in the last 10 overs for Sri Lanka. We can also see that any plateaus of our lines (ie no runs scored), usually coincides with a wicket (a player being dismissed). This might suggest a bowler being on a hot streak.
 
 
 
