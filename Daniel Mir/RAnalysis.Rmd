@@ -21,7 +21,10 @@ library(fs)
 library(readr)
 library(ggplot2)
 library(knitr)
+library(dplyr)
 ```
+
+In the chunks below I used dplyr to allow me to analyse the data more effectively. I used a [cheat sheet](https://posit.co/wp-content/uploads/2022/10/data-transformation.pdf) [3] and the [R for Data Science guide](https://r4ds.had.co.nz/transform.html) [4] to learn how to use the package.
 
 ## Reading in the data
 
@@ -371,14 +374,31 @@ data %>%
 
 
 ```
+Another way to see that this is 'risky' is by looking at the distribution of dismissals. Here we can see that the you are slightly more likely to be dismissed in the first 10 overs, due to the risk taking, however this is offset by having your best batters bat first. In the last 10 overs it increases massively as we have worse batters taking more risks.
+
+```{r}
+wickets_data <- data %>%
+  filter(!is.na(player_dismissed)) %>%
+  mutate(over = ceiling(ball))
+
+ggplot(wickets_data, aes(x = over)) +
+  geom_histogram(aes(y = after_stat(density)),
+                 binwidth = 1,
+                 fill = "red", color = "black", alpha = 0.6) +
+  labs(title = "Density of Wickets by Over",
+       x = "Over", y = "Density of Wickets") +
+  geom_vline(xintercept = c(10, 40), linetype = "dotted", color = "blue") +
+  theme_minimal()
+```
+
+Lets combine what we have learnt so far and see if we can see it to an individual game.
 
 
-Another way to visualise the event series 
-
+One way to visualise the event series popularised by ESPNcricinfo [2] is the 'worm chart'.
 
 ```{r}
 data <- data %>%
-  mutate(over = floor(ball))
+  mutate(over = ceiling(ball))
 
 data <- data %>%
   mutate(total_runs = runs_off_bat + ifelse(is.na(extras), 0, extras))
@@ -388,6 +408,8 @@ worm_data <- data %>%
   summarise(runs = sum(total_runs, na.rm = TRUE), .groups = "drop") %>%
   group_by(match_id, innings) %>%
   mutate(cum_runs = cumsum(runs))
+
+
 
 ggplot(filter(worm_data, match_id == 749781),
        aes(x = over, y = cum_runs, colour = factor(innings))) +
@@ -399,6 +421,34 @@ ggplot(filter(worm_data, match_id == 749781),
 
 ```
 
+Lets see if we can uncover any other structure within the data by looking at another event - a player getting a wicket - and seeing if that has any effect on the run rate.
+
+```{r}
+wickets_data <- data %>%
+  filter(!is.na(player_dismissed)) %>%   # keep only rows where a wicket fell
+  group_by(match_id, innings, over) %>%
+  summarise(wickets = n(), .groups = "drop") %>%   # how many wickets in that over
+  left_join(worm_data, by = c("match_id", "innings", "over"))
+
+ggplot(filter(worm_data, match_id == 749781),
+       aes(x = over, y = cum_runs, colour = factor(innings))) +
+  geom_line(size = 1) +
+  # Add wickets
+  geom_point(data = filter(wickets_data, match_id == 749781),
+             aes(x = over, y = cum_runs),
+             colour = "black", shape = 1, size = 3, stroke = 1.2) +
+  labs(title = "Worm Chart - New Zealand vs Sri Lanka",
+       x = "Over", y = "Cumulative Runs",
+       colour = "Innings") +
+  theme_minimal()
+
+```
+
+
+```{r}
+
+
+```
 
 
 ## References
@@ -406,3 +456,7 @@ ggplot(filter(worm_data, match_id == 749781),
 [1] A. Kaluarachchi and S. V. Aparna, "CricAI: A classification based tool to predict the outcome in ODI cricket," 2010 Fifth International Conference on Information and Automation for Sustainability, Colombo, Sri Lanka, 2010, pp. 250-25
 
 [2] [ESPNcricinfo](https://www.espncricinfo.com/series/west-indies-in-england-2025-1448331/england-vs-west-indies-1st-odi-1448343/match-statistics)
+
+[3] [dplyr cheat sheet](https://posit.co/wp-content/uploads/2022/10/data-transformation.pdf)
+
+[4] [R for Data Science (Wickham & Grolemund)](https://r4ds.had.co.nz/transform.html)
