@@ -125,8 +125,85 @@ main factors considered by teams.
 ## Powerplay Analysis
 
 Let's take a look at the powerplay - in particular how many boundaries are scored
-during the powerplay and how many wickets are lost.
+during the batting powerplay and how many wickets are lost. The big idea here 
+being that if we were building a model for predicting match outcome as the game 
+is being played, the powerplay would be a key indicator of how well a team's innings
+is going.
+
+```{r, Powerplay boundaries}
+powerplay_boundaries <- data %>%
+  filter(ball < 10, runs_off_bat %in% c(4, 6)) %>%  # only Powerplay & boundaries
+  group_by(match_id, batting_team) %>%
+  summarise(boundaries = n(), .groups = "drop")
+
+powerplay_outcome <- data %>%
+  distinct(match_id, batting_team, winner) %>%
+  mutate(result = ifelse(batting_team == winner, "Won", "Lost"))
+
+powerplay_summary <- powerplay_boundaries %>%
+  left_join(powerplay_outcome, by = c("match_id", "batting_team")) %>%
+  filter(!is.na(result))
+
+```
+
+
+```{r}
+powerplay_summary %>%
+  ggplot(aes(x = boundaries, fill = result)) +
+  geom_histogram(position = "identity", alpha = 0.6, bins = 15) +
+  scale_fill_manual(values = c("Won" = "green", "Lost" = "red")) +
+  labs(title = "Boundaries in Powerplay vs Match Outcome",
+       x = "Number of Boundaries in First 10 Overs",
+       y = "Number of Innings",
+       fill = "Match Result") +
+  theme_minimal()
+
+```
+This distribution shows very clearly that teams that score more boundaries in the
+batting powerplay tend to win more matches - the green distribution is left skewed.
+
+Let's also look at wickets during the batting powerplay - if a team loses more 
+wickets early on in the game, we'd expect them to lose the match on average.
+
+```{r}
+powerplay_stats <- data %>%
+  filter(ball < 10) %>%
+  group_by(match_id, batting_team) %>%
+  summarise(
+    boundaries = sum(runs_off_bat %in% c(4, 6)),       # count boundaries
+    wickets = sum(!is.na(wicket_type)),                # count wickets lost
+    .groups = "drop"
+  )
+
+match_outcomes <- data %>%
+  distinct(match_id, batting_team, winner) %>%
+  mutate(result = ifelse(batting_team == winner, "Won", "Lost"))
+
+powerplay_summary <- powerplay_stats %>%
+  left_join(match_outcomes, by = c("match_id", "batting_team")) %>%
+  filter(!is.na(result))
+
+```
 
 
 
 
+
+```{r}
+powerplay_summary %>%
+  group_by(wickets) %>%
+  summarise(win_rate = mean(result == "Won"), n = n(), .groups = "drop") %>%
+  ggplot(aes(x = wickets, y = win_rate)) +
+  geom_point(size = 3, color = "blue") +
+  geom_line(group = 1, color = "blue") +
+  scale_y_continuous(labels = scales::percent) +
+  labs(title = "Win Probability vs Wickets Lost in Powerplay",
+       x = "Wickets Lost (First 10 Overs)",
+       y = "Win Probability") +
+  theme_minimal()
+
+
+
+```
+This plot shows the rapid and clear decline of win probability as the batting team
+loses wickets in the powerplay.
