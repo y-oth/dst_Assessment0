@@ -1,0 +1,92 @@
+---
+title: "powerplay analysis"
+output: html_document
+date: "2025-10-04"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# R Markdown
+
+## Libraries
+```{r}
+library(tidyr)
+library(dplyr)
+library(lubridate) 
+library(readr)
+library(purrr)
+library(ggplot2)
+```
+
+## Read ball by ball data csv
+```{r}
+odis_bbb_recent <- read.csv("../data/processed/odi_bbb_recent.csv")
+```
+
+## Clean the data
+```{r}
+odis_bbb_recent <- odis_bbb_recent %>%
+  select(match_id, innings, ball, runs_off_bat, extras, wicket_type, batting_team, winner) %>%
+  separate(ball, into = c("over", "ball_"), sep = "\\.", convert = TRUE) %>%
+  mutate(
+    legal_ball = ifelse(extras > 0, 0, 1),
+    wicket = ifelse(wicket_type == "", 0, 1),
+    won_innings = ifelse(batting_team == winner, "Won", "Lost")
+    )
+```
+
+## Seperate into individual innings
+```{r}
+match_innings_list <- split(odis_bbb_recent, list(odis_bbb_recent$match_id, odis_bbb_recent$innings))
+```
+
+## Cumulative sum of runs and legal deliveries
+```{r}
+for (i in seq_along(match_innings_list)) {
+  innings <- match_innings_list[[i]] %>%
+    mutate(
+      ball_count = cumsum(legal_ball),
+      run_count = cumsum(runs_off_bat + extras),
+      wicket_count = cumsum(wicket)
+      ) %>%
+    filter(ball_count <= 60)
+  match_innings_list[[i]] <- innings
+}
+```
+
+## Plotting all innings
+```{r}
+# Combine all innings into one dataframe
+combined_data <- bind_rows(match_innings_list)
+
+# Plot all lines in black
+ggplot(combined_data %>% filter(!is.na(won_innings)),
+       aes(x = ball_count, y = run_count, group = interaction(match_id, innings), colour = won_innings)) +
+  geom_line(alpha = 0.3, size = 0.7) +  # make lines semi-transparent
+  scale_colour_manual(values = c("Won" = "black", "Lost" = "red")) +
+  labs(x = "Ball number", y = "Cumulative runs", colour = "Result") +
+  theme_minimal()
+```
+
+## Heatmap of runs wickets, and expected outcome
+```{r}
+heatmap_data <- combined_data %>%
+  filter(ball_count == 60) %>%
+  mutate(run_bin = floor(run_count / 10) * 10) %>%  # group into 10-run bins
+  group_by(run_bin, wicket_count) %>%
+  summarise(win_prob = mean(won_innings == "Won", na.rm = TRUE)) %>%
+  ungroup()
+
+ggplot(heatmap_data, aes(x = run_bin, y = wicket_count, fill = win_prob)) +
+  geom_tile(colour = "white") +
+  scale_fill_viridis_c(option = "plasma", limits = c(0,1)) +
+  labs(
+    x = "Runs scored (binned by 10s)",
+    y = "Wickets lost",
+    fill = "Win probability"
+  ) +
+  theme_minimal()
+```
+

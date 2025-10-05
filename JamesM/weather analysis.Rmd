@@ -1,0 +1,80 @@
+---
+title: "Test"
+output: html_document
+date: "2025-10-01"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+```{r}
+library(tidyr)
+library(dplyr)
+library(lubridate) 
+library(cricketdata)
+library(openmeteo)
+library(tidygeocoder)
+library(readr)
+library(purrr)
+
+weather_params <- c("temperature_2m", "relative_humidity_2m", "precipitation", "cloud_cover_low", "wind_speed_10m")
+
+odis_bbb_recent <- read.csv("../data/processed/odi_bbb_recent.csv")
+
+odis_bbb_recent <- odis_bbb_recent %>%
+  separate(ball, into = c("over", "ball"), sep = "\\.", convert = TRUE)
+
+
+matches_unique <- odis_bbb_recent %>%
+  select(match_id, start_date, lat, long) %>%
+  distinct() %>%
+  filter(!is.na(lat) & !is.na(long))
+
+batch_size <- 600
+n_batches <- ceiling(nrow(matches_unique) / batch_size)
+
+results <- list()
+
+for(i in seq_len(n_batches)) {
+  start_row <- (i - 1) * batch_size + 1
+  end_row   <- min(i * batch_size, nrow(matches_unique))
+  
+  batch <- matches_unique[start_row:end_row, ]
+  
+  batch_results <- batch %>%
+    rowwise() %>%
+    mutate(hourly_weather = list(
+      weather_history(
+        location = c(lat, long),
+        start = format(as.Date(start_date), "%Y-%m-%d"),
+        end   = format(as.Date(start_date), "%Y-%m-%d"),
+        hourly = c("temperature_2m", "relative_humidity_2m", "wind_speed_10m", "precipitation")
+      )
+    )) %>%
+    ungroup()
+  
+  results[[i]] <- batch_results
+  
+  if(i < n_batches) Sys.sleep(60)  # wait 1 minute before next batch
+}
+all_weather <- bind_rows(results)
+
+odis_bbb_recent <- odis_bbb_recent %>%
+  left_join(all_weather, by = "match_id") %>%
+
+odis_bbb_recent <- odis_bbb_recent %>%
+  rowwise() %>%
+  mutate(
+    ball_time = as.POSIXct(start_date) + 11*60*60 + (over - 1) * 24 * 60 + (ball - 1) * 4*60, # in seconds
+    # Map to nearest hour in hourly_weather
+    hour_index = as.numeric(format(ball_time, "%H")) + 1,  # 1-based index
+    temperature = hourly_weather$temperature_2m[hour_index],
+    humidity    = hourly_weather$relative_humidity_2m[hour_index],
+    wind_speed  = hourly_weather$wind_speed_10m[hour_index],
+    precipitation = hourly_weather$precipitation[hour_index]
+  ) %>%
+  ungroup()
+```

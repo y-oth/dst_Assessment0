@@ -16,6 +16,10 @@ knitr::opts_chunk$set(echo = TRUE)
 library(dplyr)
 library(lubridate) 
 library(cricketdata)
+library(openmeteo)
+library(tidygeocoder)
+library(readr)
+library(purrr)
 
 odis_match <- fetch_cricsheet(type = "match", gender = "male", competition = "odis") 
 odi_bbb <- fetch_cricsheet(type = "bbb", gender = "male", competition = "odis")
@@ -27,8 +31,18 @@ odi_bbb <- odi_bbb %>%
 
 odis_meta <- odis_match %>%
   mutate(match_id = as.character(match_id)) %>% 
-  select(match_id, winner, toss_winner, toss_decision, team1, team2)
+  # mutate(date = as.Date(date, origin = "2020-12-31")) %>%
+  select(match_id, winner, toss_winner, toss_decision, team1, team2, date, venue) %>%
+  geocode(address = venue, method = "osm")
 
+# weather_data <- odis_meta %>%
+#   select(date, lat, long) %>%
+#   filter(!is.na(lat) & !is.na(long)) %>%
+#   mutate(date = as.Date(date, format = "%Y/%m/%d"), date = format(date, "%Y-%m-%d")) %>%
+#   rowwise() %>%
+#   mutate(temp = list(weather_history(c(lat, long), start = date, end = date, hourly = c("temperature_2m"))))
+
+  
 # Filter 2015 onwards and join
 
 odi_bbb_recent <- odi_bbb %>% 
@@ -37,14 +51,11 @@ odi_bbb_recent <- odi_bbb %>%
   left_join(player_meta[c("unique_name", "bowling_style")], by = join_by("bowler"=="unique_name"), relationship = "many-to-many")%>%
   left_join(player_meta[c("unique_name", "batting_style")], by = join_by("striker"=="unique_name"), relationship = "many-to-many")
 
-# dir.create("../data/raw", recursive = TRUE, showWarnings = FALSE)
-# dir.create("../data/processed", recursive = TRUE, showWarnings = FALSE)
+dir.create("../data/raw", recursive = TRUE, showWarnings = FALSE)
+dir.create("../data/processed", recursive = TRUE, showWarnings = FALSE)
 
 # Save processed dataset
 
-# write.csv(odi_bbb_recent,
-
-# file = "../data/processed/odi_bbb_recent.csv",
-
-# row.names = FALSE)
+write.csv(odi_bbb_recent,
+file = "../data/processed/odi_bbb_recent.csv", row.names = FALSE)
 ```
