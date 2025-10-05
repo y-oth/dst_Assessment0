@@ -1,0 +1,310 @@
+---
+title: "RAnalysis"
+output: html_document
+date: "2025-10-01"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Daniel's Analysis
+
+## Introduction
+
+The following document contains analysis of the cricket data (From cricsheet, see 01-Data) and written myself in R.
+
+The following library's are required for this document
+
+```{r}
+library(fs)
+library(readr)
+library(ggplot2)
+library(knitr)
+library(dplyr)
+```
+
+In the chunks below I used dplyr to allow me to analyse the data more effectively. I used a [cheat sheet](https://posit.co/wp-content/uploads/2022/10/data-transformation.pdf) [3] and the [R for Data Science guide](https://r4ds.had.co.nz/transform.html) [4] to learn how to use the package.As much of the data in this dataset can be grouped by match and as a dataset as a whole it is particularly useful.
+
+## Reading in the data
+
+```{r}
+data <- read_csv(path_wd("..", "data", "processed", "odi_bbb_recent.csv"))
+```
+
+```{r}
+glimpse(data)
+```
+
+## Initial EDA
+
+First I want to get a brief summary of some of some of the variables.
+
+```{r}
+print(sort(unique(data$runs_off_bat)))
+summary(data$runs_off_bat)
+
+
+
+```
+
+We can see that batters are fairly conservative with at least half of the balls resulting in no runs and less than 25% being more than singles. Lets see how this compares from one innings to another.
+
+```{r}
+
+ggplot(data, aes(x = factor(innings), y = runs_off_bat)) +
+  geom_boxplot(fill = "skyblue") +
+  labs(x = "Innings", y = "Runs off the bat",
+       title = "Distribution of runs per ball by innings")
+
+
+
+```
+
+This is strange - typically ODIs have strictly 2 innings. The 3rd and 4th innings only occur when the match is tied and we go to a 'Super Over' which is why the distribution of Runs off Bat is skewed so much higher for these cases.
+
+```{r}
+bad_match_ids <- data %>%
+  filter(innings > 2) %>%
+  distinct(match_id) %>%
+  pull()
+
+print(bad_match_ids)
+
+print(length(bad_match_ids) / length(unique(data$match_id)))
+```
+
+There are only 5 matches this has occurred - which is around 0.4% of all matches in our data set. As a result we will ignore it for now. Lets have a look at Innings 1 and 2 in more detail.
+
+```{r}
+
+runs_dist <- data %>%
+  filter(innings %in% c(1, 2)) %>%
+  group_by(innings, runs_off_bat) %>%
+  summarise(count = n(), .groups = "drop") %>%
+  group_by(innings) %>%
+  mutate(prop = count / sum(count))
+
+ggplot(runs_dist, aes(x = factor(runs_off_bat), y = prop, fill = factor(innings))) +
+  geom_col(position = "dodge") +
+  labs(
+    title = "Run Distribution by Innings",
+    x = "Runs Off Bat",
+    y = "Proportion of Balls",
+    fill = "Innings"
+  ) +
+  theme_minimal()
+
+```
+
+There doesn't seem to be a significant difference.
+
+## Home advantage
+
+During the literature review I found a paper by Kaluarachchi and Aparna [1] trying to investigate the effects of home advantage on the outcome of the game. I attempt to investigate that relation using this dataset.
+
+### Home vs Away
+
+```{r}
+length(unique(data$venue))
+```
+
+```{r}
+
+venue_country <- tribble(
+  ~venue, ~country,
+  "Hagley Oval", "New Zealand",
+  "Dubai International Cricket Stadium", "UAE",
+  "Seddon Park", "New Zealand",
+  "Sydney Cricket Ground", "Australia",
+  "Kingsmead", "South Africa",
+  "Eden Park", "New Zealand",
+  "New Wanderers Stadium", "South Africa",
+  "Melbourne Cricket Ground", "Australia",
+  "Saxton Oval", "New Zealand",
+  "Brisbane Cricket Ground, Woolloongabba", "Australia",
+  "Buffalo Park", "South Africa",
+  "Bellerive Oval", "Australia",
+  "University Oval", "New Zealand",
+  "St George's Park", "South Africa",
+  "SuperSport Park", "South Africa",
+  "Westpac Stadium", "New Zealand",
+  "Western Australia Cricket Association Ground", "Australia",
+  "McLean Park", "New Zealand",
+  "Adelaide Oval", "Australia",
+  "Manuka Oval", "Australia",
+  "Shere Bangla National Stadium", "Bangladesh",
+  "The Village, Malahide", "Ireland",
+  "Gaddafi Stadium", "Pakistan",
+  "Edgbaston", "England",
+  "Kennington Oval", "England",
+  "The Rose Bowl", "England",
+  "Trent Bridge", "England",
+  "Riverside Ground", "England",
+  "Zahur Ahmed Chowdhury Stadium", "Bangladesh",
+  "Harare Sports Club", "Zimbabwe",
+  "Rangiri Dambulla International Stadium", "Sri Lanka",
+  "Pallekele International Cricket Stadium", "Sri Lanka",
+  "R Premadasa Stadium", "Sri Lanka",
+ # I've removed some for brevity
+)
+
+data <- data %>%
+  select(-starts_with("country")) %>%    # remove all country columns
+  left_join(venue_country, by = "venue") # join fresh
+
+# Check if any venues did not get matched
+unmatched <- data %>%
+  filter(is.na(country)) %>%
+  distinct(venue)
+
+print(unmatched)
+
+```
+
+I attempted to investigate Home vs Away Advantage by using ChatGPT to write a script to convert venue into country however it continued to miss venues and was unreliable so I scrapped that idea.
+
+```{r}
+data <- data %>%
+  select(-starts_with("country"))
+glimpse(data)
+```
+
+## Event Sequence/ Time Series Structure
+
+The ball-by-ball (bbb) cricket data is inherently an event sequence structure which we can index by balls or overs. In this section I aim to demonstrate that structure and investigate any interesting features.
+
+```{r}
+data %>%
+  mutate(over = ceiling(ball)) %>%
+  group_by(match_id, innings, over) %>%
+  summarise(over_runs = sum(runs_off_bat + extras, na.rm = TRUE), .groups = "drop") %>%
+  group_by(innings, over) %>%
+  summarise(avg_runs = mean(over_runs, na.rm = TRUE), .groups = "drop") %>%
+  ggplot(aes(x = over, y = avg_runs, color = factor(innings))) +
+  geom_line(size = 1) +
+  geom_vline(xintercept = 10, linetype = "dotted", color = "red", size = 1) +
+  geom_vline(xintercept = 40, linetype = "dotted", color = "red", size = 1) +
+  labs(
+    title = "Average Runs per Over by Innings",
+    x = "Over", 
+    y = "Average Runs", 
+    color = "Innings"
+  ) +
+  theme_minimal()
+
+
+
+```
+
+Here we can clearly see the event series structure. There are 3 sections in an ODI cricket game, referring to the restrictions placed on the fielding team. In the first 'Powerplay' the batting team have an advantage, making it easier for them to get boundaries (4s and 6s). We can see this by the slightly increased average runs per over for the first 10 overs (once they get their eye in). We can also see that the average runs per over generally increases with time. At 40 overs the second 'Powerplay' occurs which gives the bowling team the advantage. This period is sometimes referred to as the death and despite the fact that the bowling team has an advantage, the run rate steeply increases, particularly in the first innings. This is because they are taking more risks to attempt to set a high a target for the other team as possible. It also increases in the second innings but less so as they can afford to be more conservative as they know what goal they need to reach.
+
+### Risk taking throughout the match
+
+One way we can attempt to quantify risk taking/ shifts in strategy is by looking at the distribution of boundaries throughout the game. This demonstrates the underlying structure of the previous plot, a higher proportion of boundaries in the first and last 10 overs.
+
+```{r}
+
+data %>%
+  mutate(over = ceiling(ball)) %>%
+  group_by(over) %>%
+  summarise(
+    total_balls = n(),
+    boundaries = sum(runs_off_bat %in% c(4, 6), na.rm = TRUE)
+  ) %>%
+  mutate(boundary_rate = boundaries / total_balls) %>%
+  ggplot(aes(x = over, y = boundary_rate)) +
+  geom_vline(xintercept = 10, linetype = "dashed", color = "red", size = 1) +
+  geom_vline(xintercept = 40, linetype = "dashed", color = "red", size = 1) +
+  geom_col(fill = "steelblue") +
+  scale_y_continuous(labels = scales::percent_format()) +
+  labs(title = "Proportion of Balls that are Boundaries by Over",
+       x = "Over",
+       y = "Boundary Proportion") +
+  theme_minimal()
+
+
+
+```
+Another way to see that this is 'risky' is by looking at the distribution of dismissals. Here we can see that the you are slightly more likely to be dismissed in the first 10 overs, due to the risk taking, however this is offset by having your best batters bat first. In the last 10 overs it increases massively as we have worse batters taking more risks.
+
+```{r}
+wickets_data <- data %>%
+  filter(!is.na(player_dismissed)) %>%
+  mutate(over = ceiling(ball))
+
+ggplot(wickets_data, aes(x = over)) +
+  geom_histogram(aes(y = after_stat(density)),
+                 binwidth = 1,
+                 fill = "red", color = "black", alpha = 0.6) +
+  labs(title = "Density of Wickets by Over",
+       x = "Over", y = "Density of Wickets") +
+  geom_vline(xintercept = c(10, 40), linetype = "dotted", color = "blue") +
+  theme_minimal()
+```
+
+Lets combine what we have learnt so far and see if we can see it to an individual game.
+
+
+One way to visualise the event series popularised by ESPNcricinfo [2] is the 'worm chart'.
+
+```{r}
+data <- data %>%
+  mutate(over = ceiling(ball))
+
+data <- data %>%
+  mutate(total_runs = runs_off_bat + ifelse(is.na(extras), 0, extras))
+
+worm_data <- data %>%
+  group_by(match_id, innings, over) %>%
+  summarise(runs = sum(total_runs, na.rm = TRUE), .groups = "drop") %>%
+  group_by(match_id, innings) %>%
+  mutate(cum_runs = cumsum(runs))
+
+
+
+ggplot(filter(worm_data, match_id == 749781),
+       aes(x = over, y = cum_runs, colour = factor(innings))) +
+  geom_line(size = 1) +
+  labs(title = "Worm Chart - New Zealand vs Sri Lanka",
+       x = "Over", y = "Cumulative Runs",
+       colour = "Innings")
+
+
+```
+Here we can see that the team batting first's (Sri Lanka) run rate (gradient) stays fairly consistent until the last 10 overs where they try to run up their score and the line steepens. For New Zealand, they take advantage of the Powerplay in the first 10 overs and then can play conservatively for the next 30 Overs winning with 6 Overs to spare. Lets see if this is reflected in the distribution of wickets. We would expect Sri Lanka to pick up a lot of wickets in the last 10 overs as they play riskier.
+
+
+```{r}
+wickets_data <- data %>%
+  filter(!is.na(player_dismissed)) %>%   # keep only rows where a wicket fell
+  group_by(match_id, innings, over) %>%
+  summarise(wickets = n(), .groups = "drop") %>%   # how many wickets in that over
+  left_join(worm_data, by = c("match_id", "innings", "over"))
+
+ggplot(filter(worm_data, match_id == 749781),
+       aes(x = over, y = cum_runs, colour = factor(innings))) +
+  geom_line(size = 1) +
+  geom_point(data = filter(wickets_data, match_id == 749781),
+             aes(x = over, y = cum_runs, colour = factor(innings)),
+             shape = 1, size = 3, stroke = 1.2) +
+  labs(title = "Worm Chart - New Zealand vs Sri Lanka",
+       x = "Over", y = "Cumulative Runs",
+       colour = "Innings") +
+  theme_minimal()
+
+```
+
+We do indeed see increased frequency of wickets in the last 10 overs for Sri Lanka. We can also see that any plateaus of our lines (ie no runs scored), usually coincides with a wicket (a player being dismissed). This might suggest a bowler being on a hot streak.
+
+
+
+## References
+
+[1] A. Kaluarachchi and S. V. Aparna, "CricAI: A classification based tool to predict the outcome in ODI cricket," 2010 Fifth International Conference on Information and Automation for Sustainability, Colombo, Sri Lanka, 2010, pp. 250-25
+
+[2] [ESPNcricinfo](https://www.espncricinfo.com/series/west-indies-in-england-2025-1448331/england-vs-west-indies-1st-odi-1448343/match-statistics)
+
+[3] [dplyr cheat sheet](https://posit.co/wp-content/uploads/2022/10/data-transformation.pdf)
+
+[4] [R for Data Science (Wickham & Grolemund)](https://r4ds.had.co.nz/transform.html)
