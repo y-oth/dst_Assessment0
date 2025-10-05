@@ -1,0 +1,132 @@
+---
+title: "Exploratory Data Analysis for ODI Cricket"
+author: "Elliot Moore"
+date: "2025-10-05"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r libraries, include=FALSE}
+# Load libraries
+library(tidyverse)
+library(tidyr)
+```
+
+## Introduction
+We are investigating the $\texttt{cricketdata}$ package here, so first we will 
+load the required libraries and then we can start our analysis. The package 
+$\texttt{cricketdata}$ includes data for Test, ODI and T20 cricket, for Men's and
+Women's cricket, however for now we are going to focus on Men's ODI matches. In
+particular, we are interested in what factors affect the match outcome in the 
+*powerplay*. 
+
+## Powerplay
+There are two *powerplays* in each match, the batting powerplay which
+is the first 10 overs and the bowling powerplay which is the final 10 overs. During
+the batting powerplay, the fielding team is only allowed a maximum of two players
+outside the 30-yard circle, encouraging the batting team to take more risk and 
+go for boundaries (fours and sixes). The final powerplay favours the bowling team,
+and a maximum of 5 fielders are allowed outside the 30-yard circle.
+
+
+```{r}
+# Here we load the required libraries
+library(fs)
+library(readr)
+library(ggplot2)
+library(knitr)
+library(dplyr)
+library(cricketdata)
+```
+
+```{r}
+# Here we get our data
+data <- read_csv(path_wd("..", "data", "processed", "odi_bbb_recent.csv"))
+
+```
+
+
+```{r}
+glimpse(data)
+```
+
+
+Firstly, I wanted to check to see if winning the toss, that is the coin toss to
+determine which team chooses to bat first or bowl first, has any impact on the 
+match outcome.
+
+Since we have ball by ball data, it's a good idea to summarise the data first, 
+only keeping the key information.
+
+
+## Toss Decision
+```{r, Heatmap 1}
+heatmap_data <- data %>%
+  distinct(match_id, toss_winner, toss_decision, winner) %>%
+  mutate(toss_winner_won = ifelse(toss_winner == winner, "Yes", "No")) %>%
+  count(toss_decision, toss_winner_won) %>%
+  group_by(toss_decision) %>%
+  mutate(perc = n / sum(n) * 100)
+
+ggplot(heatmap_data, aes(x = toss_decision, y = toss_winner_won, fill = perc)) +
+  geom_tile(color = "white") +
+  geom_text(aes(label = sprintf("%.1f%%", perc)), color = "black", size = 5) +
+  scale_fill_gradient(low = "lightblue", high = "darkblue") +
+  labs(
+    title = "Toss Decision vs. Match Outcome (as % of Toss Decisions)",
+    x = "Decision After Winning Toss",
+    y = "Did Toss Winner Also Win?",
+    fill = "Percentage"
+  ) +
+  theme_minimal()
+
+```
+
+
+
+```{r, Toss Winning Heatmap}
+heatmap_data <- data %>%
+  distinct(match_id, toss_winner, toss_decision, winner) %>%
+  # 🔹 Remove matches with no result
+  filter(!is.na(winner)) %>%
+  mutate(toss_winner_won = ifelse(toss_winner == winner, "Yes", "No")) %>%
+  count(toss_decision, toss_winner_won) %>%
+  group_by(toss_decision) %>%
+  mutate(perc = n / sum(n) * 100)
+
+ggplot(heatmap_data, aes(x = toss_decision, y = toss_winner_won, fill = perc)) +
+  geom_tile(color = "white") +
+  geom_text(aes(label = sprintf("%.1f%%", perc)), color = "white", size = 5) +
+  scale_fill_gradient(low = "red", high = "orange") +
+  labs(
+    title = "Toss Decision vs. Match Outcome",
+    x = "Decision After Winning Toss",
+    y = "Did Toss Winner Also Win?",
+    fill = "Percentage"
+  ) +
+  theme_minimal()
+
+
+
+```
+
+
+
+Here, NA is no match outcome - some matches are rained off or cancelled for other
+reasons. Therefore I decided to remove this from the heatmap as it is not
+useful data. The heatmap shows us that deciding to field first is the better decision
+when all other factors are ignored - weather and pitch quality are usually the 
+main factors considered by teams.
+
+## Powerplay Analysis
+
+Let's take a look at the powerplay - in particular how many boundaries are scored
+during the powerplay and how many wickets are lost.
+
+
+
+
