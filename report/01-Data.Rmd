@@ -27,7 +27,7 @@ odi_bbb <- odi_bbb %>%
 
 odis_meta <- odis_match %>%
   mutate(match_id = as.character(match_id)) %>% 
-  select(match_id, winner, toss_winner, toss_decision, team1, team2)
+  select(match_id, winner, toss_winner, toss_decision, team1, team2, date, venue)
 
 # Filter 2015 onwards and join
 
