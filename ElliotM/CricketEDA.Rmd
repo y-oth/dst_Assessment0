@@ -3,6 +3,7 @@ title: "Exploratory Data Analysis for ODI Cricket"
 author: "Elliot Moore"
 date: "2025-10-05"
 output: html_document
+bibliography: references.bib
 ---
 
 ```{r setup, include=FALSE}
@@ -54,15 +55,24 @@ data <- read_csv(path_wd("..", "data", "processed", "odi_bbb_recent.csv"))
 glimpse(data)
 ```
 
+## Toss Decision
+
 Firstly, I wanted to check to see if winning the toss, that is the coin toss to
 determine which team chooses to bat first or bowl first, has any impact on the 
 match outcome.
+
+Most cricket matches on the TV start with the pundits talking about how batting
+or bowling first is a big advantage based on the weather and pitch condition.
+
+I looked online for papers relating to this and did find that a small advantage 
+was found in [@sood2016fairlyrandomimpactwinning] - the team that wins the toss
+was found to win more often. I would like to explore whether choosing to bat 
+first or bowl first has an impact on the match outcome.
 
 Since we have ball by ball data, it's a good idea to summarise the data first, 
 only keeping the key information.
 
 
-## Toss Decision
 ```{r, Heatmap 1}
 heatmap_data <- data %>%
   distinct(match_id, toss_winner, toss_decision, winner) %>%
@@ -112,6 +122,8 @@ ggplot(heatmap_data, aes(x = toss_decision, y = toss_winner_won, fill = perc)) +
   theme_minimal()
 
 ```
+
+Here we can see a 3.4% difference favouring the decision to field first.
 
 
 The heatmap shows us that deciding to field first is the better decision
@@ -238,4 +250,4 @@ the same time - e.g. the report - we faced issues.
 For this EDA I used the package $\texttt{ggplot2}$ extensively so I have referenced the
 documentation below
 
-[1] ggplot documentation: https://ggplot2.tidyverse.org/reference/index.html
+ggplot documentation: https://ggplot2.tidyverse.org/reference/index.html
