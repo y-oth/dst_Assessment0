@@ -324,7 +324,81 @@ This distribution shows very clearly that teams that score more boundaries in th
 win matches. Therefore boundaries during the powerplay is likely to be a useful
 indicator of which team will win.
 
+## Bowling Style Analysis
 
+In this section, we explore how different **bowling styles** affect the average number of runs conceded per ball. Bowling style is an important characteristic of a team's bowling attack and may serve as a useful predictor of match outcomes in later stages of the project.
+
+The plot below shows the average runs per ball for each bowling style in the dataset. To make patterns clearer, we colour code styles that are above the overall average in red and those below average in blue. This gives a quick visual sense of which bowling styles tend to be more or less economical.
+
+To produce this figure I borrowed ideas from tutorials on producing advanced plots with ggplot2.[5] We first group the data by bowling style and calculate the mean runs conceded per ball. We also record the total number of balls bowled for each style to indicate the sample size.
+
+```{r bowling-style-plot, fig.width=10, fig.height=12}
+
+# Calculate summary statistics by bowling style
+bowling_stats <- data %>%
+  group_by(bowling_style) %>%
+  summarise(
+    avg_runs_per_ball = mean(runs_off_bat + coalesce(extras, 0), na.rm = TRUE),
+    balls_bowled = n(),
+    .groups = "drop"
+  ) %>%
+  arrange(desc(avg_runs_per_ball))
+
+# Overall average economy across all styles
+overall_mean <- mean(bowling_stats$avg_runs_per_ball)
+
+# Plot
+p <- ggplot(bowling_stats, aes(x = reorder(bowling_style, avg_runs_per_ball),
+                               y = avg_runs_per_ball)) +
+
+  # Horizontal line for overall mean
+  geom_hline(yintercept = overall_mean, linetype = "dashed",
+             color = "#E74C3C", linewidth = 0.8, alpha = 0.7) +
+
+  # Bars: red if above mean, blue if below
+  geom_col(aes(fill = avg_runs_per_ball > overall_mean),
+           width = 0.7, show.legend = FALSE) +
+
+  # Value labels on the bars
+  geom_text(aes(label = sprintf("%.2f", avg_runs_per_ball)),
+            hjust = -0.2, size = 4, color = "#2C3E50", fontface = "bold") +
+
+  # Sample size labels inside bars
+  geom_text(aes(label = paste0("n=", balls_bowled)),
+            hjust = 1.1, size = 3.2, color = "white", alpha = 0.8) +
+
+  scale_fill_manual(values = c("TRUE" = "#E74C3C", "FALSE" = "#3498DB")) +
+  coord_flip(clip = "off") +
+
+  # Expand y-axis to fit labels
+  scale_y_continuous(expand = expansion(mult = c(0.02, 0.15)),
+                     breaks = seq(0, 2, 0.2)) +
+
+  labs(
+    title = "Bowling Economy by Style",
+    subtitle = paste0("Overall mean: ", sprintf("%.2f", overall_mean), " runs per ball"),
+    x = NULL,
+    y = "Average Runs per Ball",
+    caption = "Red bars indicate above-average economy; Blue bars indicate below-average.\nn = number of balls bowled"
+  ) +
+
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title = element_text(face = "bold", size = 17, margin = margin(b = 5)),
+    plot.subtitle = element_text(size = 12, color = "#7F8C8D", margin = margin(b = 15)),
+    plot.caption = element_text(size = 10, color = "#95A5A6", hjust = 0, margin = margin(t = 15)),
+    axis.text.y = element_text(size = 11, color = "#2C3E50", margin = margin(r = 5)),
+    axis.text.x = element_text(size = 11, color = "#2C3E50"),
+    axis.title.x = element_text(face = "bold", size = 12, margin = margin(t = 10)),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.grid.major.x = element_line(color = "#ECF0F1", linewidth = 0.5),
+    plot.margin = margin(20, 20, 20, 20)
+  )
+
+print(p)
+```
+Looking at this plot, we can see that bowling styles vary widely in both average runs conceded and the number of balls bowled. Some styles appear more economical than others, but this simple comparison does not yet account for differences in sample size or match context (e.g., bowling during Powerplays or at the death). These factors will need to be considered in later analyses to draw stronger conclusions.
 
 ## References
 
@@ -335,3 +409,5 @@ indicator of which team will win.
 [3] [dplyr cheat sheet](https://posit.co/wp-content/uploads/2022/10/data-transformation.pdf)
 
 [4] [R for Data Science (Wickham & Grolemund)](https://r4ds.had.co.nz/transform.html)
+
+[5] [R Graph Gallery](https://r-graph-gallery.com/ggplot2-package.html)
