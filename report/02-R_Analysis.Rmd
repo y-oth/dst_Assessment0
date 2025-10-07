@@ -1,0 +1,25 @@
+---
+title: "02-R_Analysis"
+output: html_document
+date: "2025-10-07"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r, message=FALSE, warning=FALSE, results='hide'}
+library(fs)
+library(readr)
+library(ggplot2)
+library(knitr)
+library(dplyr)
+```
+
+## Reading in Our Data
+
+```{r}
+data <- read_csv(path_wd("..", "data", "processed", "odi_bbb_recent.csv"))
+```
