@@ -205,6 +205,34 @@ This plot shows the rapid and clear decline of win probability as the batting te
 loses wickets in the *bowling powerplay*. If a team loses 5 wickets, their chance
 of winning drops to just 10%, and any more leads to a certain loss.
 
+## Discussion
+
+In this EDA, I have worked with two sets of structured data - match data with 
+features such as venue, teams and winner and ball-by-ball data where each row 
+represents one delivery, with information on batter, bowler, runs scored etc.
+
+The main data resource used was the $\texttt{cricketdata}$ package, and the 
+software used for plotting and data manipulation was mainly $\texttt{dyplr}$, 
+$\texttt{ggplot2}$ and $\texttt{tidyverse}$.
+
+The types of problems the resources solve can be predictive problems, e.g. using 
+the ball-by-ball data to predicting match outcome based on performance in the 
+powerplay.  
+
+The approach used in this EDA is very generlisable to other datasets - one could
+analyse financial data or any other sports data in a similar way.
+
+I personally found that using GitHub was a positive experience for collaboration,
+we worked together on this project in person and remotely, therefore being able 
+to push your update and fetch other people's updates was easy and useful. The 
+main concern I had with GitHub was that when two people were working on a file at 
+the same time - e.g. the report - we faced issues.
+
+
+
+
+
+
 ## References
 
 For this EDA I used the package $\texttt{ggplot2}$ extensively so I have referenced the
