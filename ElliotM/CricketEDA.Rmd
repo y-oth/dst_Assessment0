@@ -50,11 +50,9 @@ data <- read_csv(path_wd("..", "data", "processed", "odi_bbb_recent.csv"))
 
 ```
 
-
 ```{r}
 glimpse(data)
 ```
-
 
 Firstly, I wanted to check to see if winning the toss, that is the coin toss to
 determine which team chooses to bat first or bowl first, has any impact on the 
