@@ -167,6 +167,7 @@ powerplay_summary %>%
   theme_minimal()
 
 ```
+
 This distribution shows very clearly that teams that score more boundaries in the
 *batting powerplay* tend to win more matches - the green distribution shows teams that
 win matches. Therefore boundaries during the powerplay is likely to be a useful
