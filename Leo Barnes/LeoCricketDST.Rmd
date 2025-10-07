@@ -1,0 +1,115 @@
+---
+title: "Untitled"
+output: html_document
+date: "2025-10-05"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(readr)
+library(ggplot2)
+library(fs)
+library(knitr)
+library(dplyr)
+library(tidyr)
+```
+
+```{r load_data, message=FALSE}
+data <- read_csv("data/processed/odi_bbb_recent.csv")
+```
+This analysis is in two parts. 
+The first has been more focused on teaching myself the basics of cricket, like learning the rules and how the game works etc... A part of this included making basic visual plots of key performance indicators to tell me what a normal game looks like.
+
+The dataset we have has over 620000 lines of data, where each line is one ball in the form of a decimal. We find that this decimal is represented as x.y, where x represents the over (starting at 0), and y represents the number ball (eg a ball of 2.4 is the fourth ball in the third over). For parts of this analysis, we will want to look at overs, so we can make an overs column by using the floor function and simply adding 1.
+
+```{r}
+data <- data %>%
+  mutate(over=floor(ball)+1)
+```
+
+```{r preview}
+glimpse(data)
+```
+
+# Initial plots
+
+As someone who really doesn't know much about cricket, I want to start off with getting an idea of what the performance indicators are, and what could be expected in a game. 
+
+I will do this by creating some general plots to look at the distributions of some of the columns from our data. This is to find roughly how often something occurs (eg a batters dismissal, average number of runs, boundaries etc...) for the purpose of getting a naive idea of what 'good' and 'bad' performances are.
+
+First we will make a new dataset from our odi_bbb_recent where instead of having one row represent one ball, we make it so one row will represents one inning. This is to simplify our plots and get a wider view on some performance indicators. 
+The metrics I will be plotting the distributions for are runs, wickets and boundaries.
+
+```{r}
+metrics <- data %>%
+  group_by(match_id,innings) %>%
+  summarise(total_runs= sum(runs_off_bat), total_wickets = sum(!is.na(player_dismissed)), boundaries = sum(runs_off_bat %in%c(4, 6)),.groups= "drop")
+
+head(metrics)
+```
+
+This first plot looks at the distribution of runs per inning
+
+```{r}
+ggplot(metrics,aes(x = total_runs))+
+  geom_histogram(aes(y = after_stat(density)), bins = 30, fill = "steelblue", alpha = 0.7)+
+  labs(title = "Distribution of total runs per inning", subtitle = sprintf("Mean = %.1f runs", mean(metrics$total_runs)), x = "Total Runs", y = "Density")
+```
+This is a fairly standard plot as to be expected, 
+
+Now we look at the distribution of wickets (dismissal of a batter) per inning.
+
+```{r}
+ggplot(metrics,aes(x = total_wickets))+
+  geom_histogram(aes(y = after_stat(density)), bins = 10, fill = "steelblue", alpha = 0.7)+
+  labs(title = "Distribution of total wickets per inning", subtitle = sprintf("Mean = %.1f wickets", mean(metrics$total_wickets)), x = "Wickets", y = "Density")
+```
+This plot confused me at first, as from what I learned about the rules, the inning is over when the batting team loses 10 wickets, though the mean being 7.4 shows that a fair amount of the time that isn't the case. Only until after I realised that for ODI matches, there is a set limit of 50 overs per inning, though this could also be caused by a team reaching their target and beating the other team.
+
+Something else that caught my eye was the slight spike at around the 2~3 mark, though after consulting with chatGPT, it suggested that it is likely from the second innings where the chasing team wins easily.
+
+
+
+Finally we look at boundaries per inning, boundaries being defined as scoring 4 or 6 runs (4 if the ball rolls out of the boundary, 6 if the ball lands outside of the boundary without bouncing)
+
+```{r}
+ggplot(metrics,aes(x = boundaries))+
+  geom_histogram(aes(y = after_stat(density)), bins = 20, fill = "steelblue", alpha = 0.7)+
+  labs(title = "Distribution of total boundaries per inning", subtitle = sprintf("Mean = %.1f boundaries", mean(metrics$boundaries)), x = "Boundaries", y = "Density")
+```
+This is again relatively standard. It has a slight skew but appears similiar to the plot of the distribution of runs.
+
+
+
+Here we will try and match these metrics we have just plotted with respective teams. This is to get a basic understanding of which teams generally perform than others. As these metrics are on different scales (runs have mean ~220 when wickets have an average of ~7) we must standardise these values so not all metrics are the same colour in their respective column. We must also reverse the colours for the wickets lost column, as in this case the less wickets lost the better.
+
+Here I have chosen to do green is 'better' and red is 'worse', so if say a team scores more runs than the average, their cell will be a darker green. The idea here is to have a look at which teams are better and where - a team that has a green row is typically good, and a team that has a red row is pretty bad.
+
+```{r}
+team_performance <- data %>% #make data set
+  group_by(match_id, innings, batting_team) %>%
+  summarise(runs = sum(runs_off_bat),wickets = sum(!is.na(player_dismissed)),boundaries = sum(runs_off_bat %in% c(4, 6)),.groups = "drop") %>%
+  group_by(batting_team) %>%
+  summarise(avgruns = mean(runs),avgwickets = mean(wickets),avgboundaries = mean(boundaries),n_innings = n(),.groups = "drop")
+
+team_heatmap_data <- team_performance %>%
+  select(batting_team, avgruns, avgwickets, avgboundaries) %>%
+  pivot_longer(cols = c(avgruns, avgwickets, avgboundaries),names_to = "metric",values_to = "value")
+```
+
+```{r}
+team_heatmap_data <- team_heatmap_data %>%
+  group_by(metric) %>%
+  mutate(standardized_value = if_else(metric == "avgwickets", -(value - mean(value)) / sd(value),(value - mean(value)) / sd(value))) %>% #standardise metric by subtracting mean and dividing by standard deviation
+  ungroup() #reverse for wickets as less wickets is better
+
+ggplot(team_heatmap_data, aes(x = metric, y = batting_team, fill = standardized_value)) +
+  geom_tile(color = "white") +
+  geom_text(aes(label = sprintf("%.1f", value)), color = "black", size = 3) +
+  scale_fill_gradient2(low = "red", mid = "white", high = "darkgreen", midpoint = 0) +
+  labs(title = "Average Team Performance Across Key Metrics",subtitle = "Green = better performance, Red = worse performance (relative to average)",x = "Performance Metric",y = "Team",fill = "Standardized\nValue") +
+  scale_x_discrete(labels = c("avgboundaries" = "Boundaries","avgruns" = "Runs","avgwickets" = "Wickets Lost"))
+```
