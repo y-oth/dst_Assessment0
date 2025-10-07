@@ -27,9 +27,6 @@ data <- read_csv(path_wd("..", "data", "processed", "odi_bbb_recent.csv"))
 
 
 
-
-
-
 ## Time/Event Series Structure
 
 The ball-by-ball (bbb) cricket data is inherently an event sequence structure which we can index by balls or overs. In this section I aim to demonstrate that structure and investigate any interesting features.
