@@ -386,20 +386,6 @@ library(dplyr)
 library(cricketdata)</code></pre>
 <pre class="r"><code># Here we get our data
 data &lt;- read_csv(path_wd(&quot;..&quot;, &quot;data&quot;, &quot;processed&quot;, &quot;odi_bbb_recent.csv&quot;))</code></pre>
-<pre><code>## Warning: One or more parsing issues, call `problems()` on your data frame for details,
-## e.g.:
-##   dat &lt;- vroom(...)
-##   problems(dat)</code></pre>
-<pre><code>## Rows: 620647 Columns: 29
-## ── Column specification ────────────────────────────────────────────────────────
-## Delimiter: &quot;,&quot;
-## chr  (16): season, venue, batting_team, bowling_team, striker, non_striker, ...
-## dbl   (9): match_id, innings, ball, runs_off_bat, extras, wides, noballs, by...
-## lgl   (3): penalty, other_wicket_type, other_player_dismissed
-## date  (1): start_date
-## 
-## ℹ Use `spec()` to retrieve the full column specification for this data.
-## ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
 <pre class="r"><code>glimpse(data)</code></pre>
 <pre><code>## Rows: 620,647
 ## Columns: 29
