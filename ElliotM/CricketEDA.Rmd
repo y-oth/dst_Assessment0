@@ -92,7 +92,7 @@ useful for our analysis.
 ```{r, Toss Winning Heatmap}
 heatmap_data <- data %>%
   distinct(match_id, toss_winner, toss_decision, winner) %>%
-  # 🔹 Remove matches with no result
+  # Remove matches with no result
   filter(!is.na(winner)) %>%
   mutate(toss_winner_won = ifelse(toss_winner == winner, "Yes", "No")) %>%
   count(toss_decision, toss_winner_won) %>%
@@ -102,7 +102,7 @@ heatmap_data <- data %>%
 ggplot(heatmap_data, aes(x = toss_decision, y = toss_winner_won, fill = perc)) +
   geom_tile(color = "white") +
   geom_text(aes(label = sprintf("%.1f%%", perc)), color = "white", size = 5) +
-  scale_fill_gradient(low = "red", high = "orange") +
+  scale_fill_gradient(low = "red", high = "green") +
   labs(
     title = "Toss Decision vs. Match Outcome",
     x = "Decision After Winning Toss",
@@ -156,9 +156,11 @@ powerplay_summary %>%
 
 ```
 This distribution shows very clearly that teams that score more boundaries in the
-batting powerplay tend to win more matches - the green distribution is left skewed.
+*batting powerplay* tend to win more matches - the green distribution shows teams that
+win matches. Therefore boundaries during the powerplay is likely to be a useful
+indicator of which team will win.
 
-Let's also look at wickets during the batting powerplay - if a team loses more 
+Let's also look at wickets during the *bowling powerplay* - if a team loses more 
 wickets early on in the game, we'd expect them to lose the match on average.
 
 ```{r}
@@ -198,8 +200,14 @@ powerplay_summary %>%
        y = "Win Probability") +
   theme_minimal()
 
-
-
 ```
 This plot shows the rapid and clear decline of win probability as the batting team
-loses wickets in the powerplay.
+loses wickets in the *bowling powerplay*. If a team loses 5 wickets, their chance
+of winning drops to just 10%, and any more leads to a certain loss.
+
+## References
+
+For this EDA I used the package $\texttt{ggplot2}$ extensively so I have referenced the
+documentation below
+
+[1] ggplot documentation: https://ggplot2.tidyverse.org/reference/index.html
