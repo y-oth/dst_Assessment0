@@ -85,7 +85,9 @@ ggplot(heatmap_data, aes(x = toss_decision, y = toss_winner_won, fill = perc)) +
 
 ```
 
-
+Here, NA is no match outcome - some matches are rained off or cancelled for other
+reasons. Therefore I decided to remove this from the heatmap as it is not
+useful for our analysis.
 
 ```{r, Toss Winning Heatmap}
 heatmap_data <- data %>%
@@ -109,15 +111,10 @@ ggplot(heatmap_data, aes(x = toss_decision, y = toss_winner_won, fill = perc)) +
   ) +
   theme_minimal()
 
-
-
 ```
 
 
-
-Here, NA is no match outcome - some matches are rained off or cancelled for other
-reasons. Therefore I decided to remove this from the heatmap as it is not
-useful data. The heatmap shows us that deciding to field first is the better decision
+The heatmap shows us that deciding to field first is the better decision
 when all other factors are ignored - weather and pitch quality are usually the 
 main factors considered by teams.
 
