@@ -33,7 +33,7 @@ go for boundaries (fours and sixes). The final powerplay favours the bowling tea
 and a maximum of 5 fielders are allowed outside the 30-yard circle.
 
 
-```{r}
+```{r, warning=FALSE,results='hide'}
 # Here we load the required libraries
 library(fs)
 library(readr)
@@ -44,7 +44,7 @@ library(cricketdata)
 ```
 
 
-```{r}
+```{r, warning=FALSE, results='hide',message=FALSE}
 # Here we get our data
 data <- read_csv(path_wd("..", "data", "processed", "odi_bbb_recent.csv"))
 
