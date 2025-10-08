@@ -2,13 +2,14 @@
 title: "02-R_Analysis"
 output: html_document
 date: "2025-10-07"
+editor_options: 
+  markdown: 
+    wrap: 72
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-
-
 
 ```{r, message=FALSE, warning=FALSE, results='hide'}
 library(fs)
@@ -25,12 +26,11 @@ library(tidyr)
 data <- read_csv(path_wd("..", "data", "processed", "odi_bbb_recent.csv"))
 ```
 
-
-
-
 ## Time/Event Series Structure
 
-The ball-by-ball (bbb) cricket data is inherently an event sequence structure which we can index by balls or overs. In this section I aim to demonstrate that structure and investigate any interesting features.
+The ball-by-ball (bbb) cricket data is inherently an event sequence
+structure which we can index by balls or overs. In this section I aim to
+demonstrate that structure and investigate any interesting features.
 
 ```{r}
 data %>%
@@ -55,11 +55,27 @@ data %>%
 
 ```
 
-Here we can clearly see the event series structure. There are 3 sections in an ODI cricket game, referring to the restrictions placed on the fielding team. In the first 'Powerplay' the batting team have an advantage, making it easier for them to get boundaries (4s and 6s). We can see this by the slightly increased average runs per over for the first 10 overs (once they get their eye in). We can also see that the average runs per over generally increases with time. At 40 overs the second 'Powerplay' occurs which gives the bowling team the advantage. This period is sometimes referred to as the death and despite the fact that the bowling team has an advantage, the run rate steeply increases, particularly in the first innings. This is because they are taking more risks to attempt to set a high a target for the other team as possible. It also increases in the second innings but less so as they can afford to be more conservative as they know what goal they need to reach.
+Here we can clearly see the event series structure. There are 3 sections
+in an ODI cricket game, referring to the restrictions placed on the
+fielding team. In the first 'Powerplay' the batting team have an
+advantage, making it easier for them to get boundaries (4s and 6s). We
+can see this by the slightly increased average runs per over for the
+first 10 overs (once they get their eye in). We can also see that the
+average runs per over generally increases with time. At 40 overs the
+second 'Powerplay' occurs which gives the bowling team the advantage.
+This period is sometimes referred to as the death and despite the fact
+that the bowling team has an advantage, the run rate steeply increases,
+particularly in the first innings. This is because they are taking more
+risks to attempt to set a high a target for the other team as possible.
+It also increases in the second innings but less so as they can afford
+to be more conservative as they know what goal they need to reach.
 
 ### Risk taking throughout the match
 
-One way we can attempt to quantify risk taking/ shifts in strategy is by looking at the distribution of boundaries throughout the game. This demonstrates the underlying structure of the previous plot, a higher proportion of boundaries in the first and last 10 overs.
+One way we can attempt to quantify risk taking/ shifts in strategy is by
+looking at the distribution of boundaries throughout the game. This
+demonstrates the underlying structure of the previous plot, a higher
+proportion of boundaries in the first and last 10 overs.
 
 ```{r}
 
@@ -84,7 +100,13 @@ data %>%
 
 
 ```
-Another way to see that this is 'risky' is by looking at the distribution of dismissals. Here we can see that the you are slightly more likely to be dismissed in the first 10 overs, due to the risk taking, however this is offset by having your best batters bat first. In the last 10 overs it increases massively as we have worse batters taking more risks.
+
+Another way to see that this is 'risky' is by looking at the
+distribution of dismissals. Here we can see that the you are slightly
+more likely to be dismissed in the first 10 overs, due to the risk
+taking, however this is offset by having your best batters bat first. In
+the last 10 overs it increases massively as we have worse batters taking
+more risks.
 
 ```{r}
 wickets_data <- data %>%
@@ -101,10 +123,11 @@ ggplot(wickets_data, aes(x = over)) +
   theme_minimal()
 ```
 
-Lets combine what we have learnt so far and see if we can see it to an individual game.
+Lets combine what we have learnt so far and see if we can see it to an
+individual game.
 
-
-One way to visualise the event series popularised by ESPNcricinfo [2] is the 'worm chart'.
+One way to visualise the event series popularised by ESPNcricinfo [2] is
+the 'worm chart'.
 
 ```{r}
 data <- data %>%
@@ -130,8 +153,15 @@ ggplot(filter(worm_data, match_id == 749781),
 
 
 ```
-Here we can see that the team batting first's (Sri Lanka) run rate (gradient) stays fairly consistent until the last 10 overs where they try to run up their score and the line steepens. For New Zealand, they take advantage of the Powerplay in the first 10 overs and then can play conservatively for the next 30 Overs winning with 6 Overs to spare. Lets see if this is reflected in the distribution of wickets. We would expect Sri Lanka to pick up a lot of wickets in the last 10 overs as they play riskier.
 
+Here we can see that the team batting first's (Sri Lanka) run rate
+(gradient) stays fairly consistent until the last 10 overs where they
+try to run up their score and the line steepens. For New Zealand, they
+take advantage of the Powerplay in the first 10 overs and then can play
+conservatively for the next 30 Overs winning with 6 Overs to spare. Lets
+see if this is reflected in the distribution of wickets. We would expect
+Sri Lanka to pick up a lot of wickets in the last 10 overs as they play
+riskier.
 
 ```{r}
 wickets_data <- data %>%
@@ -153,13 +183,27 @@ ggplot(filter(worm_data, match_id == 749781),
 
 ```
 
-We do indeed see increased frequency of wickets in the last 10 overs for Sri Lanka. We can also see that any plateaus of our lines (ie no runs scored), usually coincides with a wicket (a player being dismissed). This might suggest a bowler being on a hot streak.
+We do indeed see increased frequency of wickets in the last 10 overs for
+Sri Lanka. We can also see that any plateaus of our lines (ie no runs
+scored), usually coincides with a wicket (a player being dismissed).
+This might suggest a bowler being on a hot streak.
 
 ## Team Performance Analysis
 
-This analysis is to get a basic understanding of which teams generally perform than others. As these metrics are on different scales (runs have mean ~220 when wickets have an average of ~7) we must standardise these values so not all metrics are the same colour in their respective column. The way we will standardise is by subtracting the mean and dividing by the standard deviation. We must also reverse the colours for the wickets lost column, as in this case the less wickets lost the better.
+This analysis is to get a basic understanding of which teams generally
+perform than others. As these metrics are on different scales (runs have
+mean \~220 when wickets have an average of \~7) we must standardise
+these values so not all metrics are the same colour in their respective
+column. The way we will standardise is by subtracting the mean and
+dividing by the standard deviation. We must also reverse the colours for
+the wickets lost column, as in this case the less wickets lost the
+better.
 
-Here I have chosen to do green is 'better' and red is 'worse', so if say a team scores more runs than the average, their cell will be a darker green. The idea here is to have a look at which teams are better and where - a team that has a green row is typically good, and a team that has a red row is pretty bad.
+Here I have chosen to do green is 'better' and red is 'worse', so if say
+a team scores more runs than the average, their cell will be a darker
+green. The idea here is to have a look at which teams are better and
+where - a team that has a green row is typically good, and a team that
+has a red row is pretty bad.
 
 ```{r}
 team_performance <- data %>% #make data set
@@ -187,18 +231,30 @@ ggplot(team_heatmap_data, aes(x = metric, y = batting_team, fill = standardized_
   scale_x_discrete(labels = c("avgboundaries" = "Boundaries","avgruns" = "Runs","avgwickets" = "Wickets Lost"))
 ```
 
-This plot is to have a look at which teams perform better than others. Can see the strongest teams are England, India and Australia, closely followed by South Africa. The worst team in terms of the metrics on the chart is Papua New Guinea, who have the worst performance in each metric.
+This plot is to have a look at which teams perform better than others.
+Can see the strongest teams are England, India and Australia, closely
+followed by South Africa. The worst team in terms of the metrics on the
+chart is Papua New Guinea, who have the worst performance in each
+metric.
 
-# Match Momentum Analysis 
+# Match Momentum Analysis
 
-
-This plot is to have a look at which teams perform better than others. Can see the strongest teams are England, India and Australia, closely followed by South Africa. The worst team in terms of the metrics on the chart is Papua New Guinea, who have the worst performance in each metric.
+This plot is to have a look at which teams perform better than others.
+Can see the strongest teams are England, India and Australia, closely
+followed by South Africa. The worst team in terms of the metrics on the
+chart is Papua New Guinea, who have the worst performance in each
+metric.
 
 ## Scoring Streaks and Momentum
 
-We now look into momentum. If a team scores well in one over, this is asking the question will that carry on into the next.
+We now look into momentum. If a team scores well in one over, this is
+asking the question will that carry on into the next.
 
-After looking online, I see generally 7-9 runs in an over is a good over. We can confirm this as if a batting team averages 8 runs in an over in 50 overs they will end up with 400 runs, being a very good score. As we are looking at momentum gained after a good over, we will classify a big over as an over with 10+ runs.
+After looking online, I see generally 7-9 runs in an over is a good
+over. We can confirm this as if a batting team averages 8 runs in an
+over in 50 overs they will end up with 400 runs, being a very good
+score. As we are looking at momentum gained after a good over, we will
+classify a big over as an over with 10+ runs.
 
 ```{r}
 over_runs <- data %>% #get runs per over
@@ -222,13 +278,22 @@ scoring_comparison %>%
   labs(title = "Runs in Next Over Based on Current Over Performance",x = "Current Over Type",y = "Runs in Next Over",fill = "Over Type")
 
 ```
-We can see there is a difference for runs in an over depending on the past overs run count, which could signal that momentum has an effect, but could also be explained by a mismatched game (team being much better than opponent, meaning on average their runs per over would be higher).
+
+We can see there is a difference for runs in an over depending on the
+past overs run count, which could signal that momentum has an effect,
+but could also be explained by a mismatched game (team being much better
+than opponent, meaning on average their runs per over would be higher).
 
 ## Winning Streaks Across Matches
 
-A natural progression from single match momentum is to analyse momentum over multiple matches.
+A natural progression from single match momentum is to analyse momentum
+over multiple matches.
 
-For analysis, we are going to prepare a data set arranged in teams, that will have a binary classification win = 1, lose = 0 and then make a score for the outcome of the previous 3 or so games. The charts we will make are win percentage given outcome of last match, and winning percentage given outcomes of last 3 matches.
+For analysis, we are going to prepare a data set arranged in teams, that
+will have a binary classification win = 1, lose = 0 and then make a
+score for the outcome of the previous 3 or so games. The charts we will
+make are win percentage given outcome of last match, and winning
+percentage given outcomes of last 3 matches.
 
 ```{r}
 match_results <- data %>% #getting match results for each team in chronological order
@@ -250,7 +315,10 @@ team_streaks <- team_match_records %>% #calculate score for previous matches
 
 glimpse(team_streaks)
 ```
-As an introduction to multi match momentum, we will first start with the probability a team wins a game, given the outcome of their previous game. We do this by setting the 
+
+As an introduction to multi match momentum, we will first start with the
+probability a team wins a game, given the outcome of their previous
+game. We do this by setting the
 
 ```{r}
 team_streaks %>%
@@ -263,9 +331,17 @@ team_streaks %>%
   scale_fill_manual(values = c("Won Last Match" = "green", "Lost Last Match" = "red")) +
   labs(x = "Previous Match Result",y = "Win Rate in Current Match")
 ```
-This plot doesn't seem overly useful to us, as it doesn't really tell us anything. Looking at the binary 'win match/lose match', every game is included in this calculation as every game is either won or lost. One possible interpretation could be that it shows the difference in team quality, how much better the good teams are compared to the bad ones. Still, it is a simple easy to understand plot so I thought I may as well include it.
 
-We can try and improve the plot by extending it to winning probability given a winning streak. This could be 
+This plot doesn't seem overly useful to us, as it doesn't really tell us
+anything. Looking at the binary 'win match/lose match', every game is
+included in this calculation as every game is either won or lost. One
+possible interpretation could be that it shows the difference in team
+quality, how much better the good teams are compared to the bad ones.
+Still, it is a simple easy to understand plot so I thought I may as well
+include it.
+
+We can try and improve the plot by extending it to winning probability
+given a winning streak. This could be
 
 ```{r}
 team_streaks %>% #
@@ -281,15 +357,20 @@ team_streaks %>% #
   scale_y_continuous(labels = scales::percent, limits = c(0, 0.7)) +
   labs(title = "Win Rate Based on Recent Form (Last 3 Matches)",x = "Recent Form",y = "Win Rate in Current Match")
 ```
-This can be viewed as winning streaks having an effect on winning probability, and hence supporting the idea that momentum is significant, though again it could also be interpreted as if a team is on a winning streak, they may just be a good team who wins more on average. This plot tells us more than the previous, though it definitely isn't conclusive.
+
+This can be viewed as winning streaks having an effect on winning
+probability, and hence supporting the idea that momentum is significant,
+though again it could also be interpreted as if a team is on a winning
+streak, they may just be a good team who wins more on average. This plot
+tells us more than the previous, though it definitely isn't conclusive.
 
 ## Powerplay Analysis
 
-Let's take a look at the powerplay - in particular how many boundaries are scored
-during the batting powerplay and how many wickets are lost. The big idea here 
-being that if we were building a model for predicting match outcome as the game 
-is being played, the powerplay would be a key indicator of how well a team's innings
-is going.
+Let's take a look at the powerplay - in particular how many boundaries
+are scored during the batting powerplay and how many wickets are lost.
+The big idea here being that if we were building a model for predicting
+match outcome as the game is being played, the powerplay would be a key
+indicator of how well a team's innings is going.
 
 ```{r, Powerplay boundaries}
 powerplay_boundaries <- data %>%
@@ -307,7 +388,6 @@ powerplay_summary <- powerplay_boundaries %>%
 
 ```
 
-
 ```{r}
 powerplay_summary %>%
   ggplot(aes(x = boundaries, fill = result)) +
@@ -320,18 +400,118 @@ powerplay_summary %>%
   theme_minimal()
 
 ```
-This distribution shows very clearly that teams that score more boundaries in the
-*batting powerplay* tend to win more matches - the green distribution shows teams that
-win matches. Therefore boundaries during the powerplay is likely to be a useful
-indicator of which team will win.
+
+This distribution shows very clearly that teams that score more
+boundaries in the *batting powerplay* tend to win more matches - the
+green distribution shows teams that win matches. Therefore boundaries
+during the powerplay is likely to be a useful indicator of which team
+will win.
+
+We can also look at the worm plots for the entire powerplay, and
+potentially spot trends in winning innings.
+
+Clean the data:
+```{r}
+odis_bbb_recent <- data %>%
+  select(match_id, innings, ball, runs_off_bat, extras, wicket_type, batting_team, winner) %>%
+  separate(ball, into = c("over", "ball_"), sep = "\\.", convert = TRUE) %>%
+  mutate(
+    wicket_type = ifelse(is.na(wicket_type), "", wicket_type),
+    legal_ball = ifelse(extras > 0, 0, 1),
+    wicket = ifelse(wicket_type == "", 0, 1),
+    won_innings = ifelse(batting_team == winner, "Won", "Lost")
+    )
+```
+
+Seperate into individual innings:
+```{r}
+match_innings_list <- split(odis_bbb_recent, list(odis_bbb_recent$match_id, odis_bbb_recent$innings))
+```
+
+Cumulative sum of runs, wickets and legal deliveries:
+```{r}
+for (i in seq_along(match_innings_list)) {
+  innings <- match_innings_list[[i]] %>%
+    mutate(
+      ball_count = cumsum(legal_ball),
+      run_count = cumsum(runs_off_bat + extras),
+      wicket_count = cumsum(wicket)
+      ) %>%
+    filter(ball_count <= 60)
+  match_innings_list[[i]] <- innings
+}
+```
+
+Plotting all innings:
+```{r}
+combined_data <- bind_rows(match_innings_list)
+
+ggplot(combined_data %>% filter(!is.na(won_innings)),
+       aes(x = ball_count, y = run_count, group = interaction(match_id, innings), colour = won_innings)) +
+  geom_line(alpha = 0.3, size = 0.7) +
+  scale_colour_manual(values = c("Won" = "black", "Lost" = "red")) +
+  labs(x = "Ball number", y = "Cumulative runs", colour = "Result") +
+  theme_minimal()
+```
+
+While it is possible to observe some level of skew between winning
+powerplays and losing ones, the random nature of cricket scoring makes
+it difficult to filter out noise. Clearly the extreme innings tell us
+that particularly high run rates lead to victory and particularly low
+run rates lead to defeat, but beyond that the plot is not helpful.
+
+In an effort to improve on this, we consider how losing wickets in the
+powerplay impacts the result of the match.
+
+Heatmap of runs wickets, and expected outcome:
+```{r}
+heatmap_data <- combined_data %>%
+  filter(ball_count == 60) %>%
+  mutate(run_bin = floor(run_count / 20) * 20) %>%
+  group_by(run_bin, wicket_count) %>%
+  summarise(win_prob = mean(won_innings == "Won", na.rm = TRUE)) %>%
+  ungroup()
+
+ggplot(heatmap_data, aes(x = run_bin, y = wicket_count, fill = win_prob)) +
+  geom_tile(colour = "white") +
+  scale_fill_viridis_c(option = "plasma", limits = c(0,1)) +
+  labs(
+    x = "Runs scored",
+    y = "Wickets lost",
+    fill = "Win probability"
+  ) +
+  theme_minimal()
+```
+
+This heatmap gives us a much clearer idea of the impact of runs and
+wickets in the powerplay. Not only does it provide us with the somewhat
+obvious conclusion that scoring more runs is good and losing more
+wickets is bad, but it demonstrates a relationship between the two.
+According to our data, finishing the powerplay with a score of 75 for
+the loss of two wickets gives a team a greater chance of going on to win
+the match than finishing the powerplay at 100 for three. This is
+interesting because it is not exactly the conclusion one might expect. A
+worthwhile extension to this would be to create a "relative value"
+function, one that relates wickets and runs in the powerplay more
+explicitly.
 
 ## Bowling Style Analysis
 
-In this section, we explore how different **bowling styles** affect the average number of runs conceded per ball. Bowling style is an important characteristic of a team's bowling attack and may serve as a useful predictor of match outcomes in later stages of the project.
+In this section, we explore how different **bowling styles** affect the
+average number of runs conceded per ball. Bowling style is an important
+characteristic of a team's bowling attack and may serve as a useful
+predictor of match outcomes in later stages of the project.
 
-The plot below shows the average runs per ball for each bowling style in the dataset. To make patterns clearer, we colour code styles that are above the overall average in red and those below average in blue. This gives a quick visual sense of which bowling styles tend to be more or less economical.
+The plot below shows the average runs per ball for each bowling style in
+the dataset. To make patterns clearer, we colour code styles that are
+above the overall average in red and those below average in blue. This
+gives a quick visual sense of which bowling styles tend to be more or
+less economical.
 
-To produce this figure I borrowed ideas from tutorials on producing advanced plots with ggplot2.[5] We first group the data by bowling style and calculate the mean runs conceded per ball. We also record the total number of balls bowled for each style to indicate the sample size.
+To produce this figure I borrowed ideas from tutorials on producing
+advanced plots with ggplot2.[5] We first group the data by bowling style
+and calculate the mean runs conceded per ball. We also record the total
+number of balls bowled for each style to indicate the sample size.
 
 ```{r bowling-style-plot, fig.width=10, fig.height=12}
 
@@ -399,16 +579,28 @@ p <- ggplot(bowling_stats, aes(x = reorder(bowling_style, avg_runs_per_ball),
 
 print(p)
 ```
-Looking at this plot, we can see that bowling styles vary widely in both average runs conceded and the number of balls bowled. Some styles appear more economical than others, but this simple comparison does not yet account for differences in sample size or match context (e.g., bowling during Powerplays or at the death). These factors will need to be considered in later analyses to draw stronger conclusions.
+
+Looking at this plot, we can see that bowling styles vary widely in both
+average runs conceded and the number of balls bowled. Some styles appear
+more economical than others, but this simple comparison does not yet
+account for differences in sample size or match context (e.g., bowling
+during Powerplays or at the death). These factors will need to be
+considered in later analyses to draw stronger conclusions.
 
 ## References
 
-[1] A. Kaluarachchi and S. V. Aparna, "CricAI: A classification based tool to predict the outcome in ODI cricket," 2010 Fifth International Conference on Information and Automation for Sustainability, Colombo, Sri Lanka, 2010, pp. 250-25
+[1] A. Kaluarachchi and S. V. Aparna, "CricAI: A classification based
+tool to predict the outcome in ODI cricket," 2010 Fifth International
+Conference on Information and Automation for Sustainability, Colombo,
+Sri Lanka, 2010, pp. 250-25
 
-[2] [ESPNcricinfo](https://www.espncricinfo.com/series/west-indies-in-england-2025-1448331/england-vs-west-indies-1st-odi-1448343/match-statistics)
+[2]
+[ESPNcricinfo](https://www.espncricinfo.com/series/west-indies-in-england-2025-1448331/england-vs-west-indies-1st-odi-1448343/match-statistics)
 
-[3] [dplyr cheat sheet](https://posit.co/wp-content/uploads/2022/10/data-transformation.pdf)
+[3] [dplyr cheat
+sheet](https://posit.co/wp-content/uploads/2022/10/data-transformation.pdf)
 
-[4] [R for Data Science (Wickham & Grolemund)](https://r4ds.had.co.nz/transform.html)
+[4] [R for Data Science (Wickham &
+Grolemund)](https://r4ds.had.co.nz/transform.html)
 
 [5] [R Graph Gallery](https://r-graph-gallery.com/ggplot2-package.html)

@@ -11,16 +11,19 @@ knitr::opts_chunk$set(echo = TRUE)
 # R Markdown
 
 ## Libraries
-```{r}
+```{r, message=FALSE, warning=FALSE, results='hide'}
 tidy_lib <- function(lib) {
-  if (!require(lib)) {install.packages(lib)}
+  if (!require(lib, character.only = TRUE)) {
+    install.packages(lib)
+  }
+  library(lib, character.only = TRUE)
 }
-tidy_lib(tidyr)
-tidy_lib(dplyr)
-tidy_lib(lubridate) 
-tidy_lib(readr)
-tidy_lib(purrr)
-tidy_lib(ggplot2)
+tidy_lib("tidyr")
+tidy_lib("dplyr")
+tidy_lib("lubridate") 
+tidy_lib("readr")
+tidy_lib("purrr")
+tidy_lib("ggplot2")
 ```
 
 ## Read ball by ball data csv
@@ -45,7 +48,7 @@ odis_bbb_recent <- odis_bbb_recent %>%
 match_innings_list <- split(odis_bbb_recent, list(odis_bbb_recent$match_id, odis_bbb_recent$innings))
 ```
 
-## Cumulative sum of runs and legal deliveries
+## Cumulative sum of runs, wickets and legal deliveries
 ```{r}
 for (i in seq_along(match_innings_list)) {
   innings <- match_innings_list[[i]] %>%
@@ -74,7 +77,7 @@ ggplot(combined_data %>% filter(!is.na(won_innings)),
 ```
 
 ## Heatmap of runs wickets, and expected outcome
-```{r}
+```{r echo=FALSE}
 heatmap_data <- combined_data %>%
   filter(ball_count == 60) %>%
   mutate(run_bin = floor(run_count / 20) * 20) %>%

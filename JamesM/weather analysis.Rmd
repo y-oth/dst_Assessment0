@@ -10,6 +10,8 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## R Markdown
 
+This document is not finished but contains relevant code that I thought was worth including and will likely play a part in later assessments.
+
 ```{r}
 library(tidyr)
 library(dplyr)
