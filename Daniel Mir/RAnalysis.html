@@ -591,7 +591,9 @@ glimpse(data)</code></pre>
 <h2>Event Sequence/ Time Series Structure</h2>
 <p>The ball-by-ball (bbb) cricket data is inherently an event sequence
 structure which we can index by balls or overs. In this section I aim to
-demonstrate that structure and investigate any interesting features.</p>
+demonstrate that structure and investigate any interesting features.
+Bukiet [5] has an interesting approach to trying to model this time
+dependent structure of cricket by using Markov Chains.</p>
 <pre class="r"><code>data %&gt;%
   mutate(over = ceiling(ball)) %&gt;%
   group_by(match_id, innings, over) %&gt;%
@@ -739,6 +741,8 @@ Sri Lanka, 2010, pp. 250-25</p>
 cheat sheet</a></p>
 <p>[4] <a href="https://r4ds.had.co.nz/transform.html">R for Data
 Science (Wickham &amp; Grolemund)</a></p>
+<p>[5] Bukiet B, Ovens M. A mathematical modelling approach to one-day
+cricket batting orders. J Sports Sci Med. 2006</p>
 </div>
 </div>
 
