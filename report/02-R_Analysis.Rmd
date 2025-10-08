@@ -26,6 +26,29 @@ library(tidyr)
 data <- read_csv(path_wd("..", "data", "processed", "odi_bbb_recent.csv"))
 ```
 
+## Initial Analysis
+
+```{r}
+glimpse(data)
+```
+
+```{r}
+dim(data)
+
+```
+
+```{r}
+# Count unique matches
+n_matches <- data %>% summarise(n_matches = n_distinct(match_id))
+n_matches
+```
+
+```{r}
+# Check missing values by column
+colSums(is.na(data))
+```
+The majority of these NAs can be replaced with 0. For example, where an NA is in wickets represents there being no wickets taken in that ball. 
+
 ## Time/Event Series Structure
 
 The ball-by-ball (bbb) cricket data is inherently an event sequence
