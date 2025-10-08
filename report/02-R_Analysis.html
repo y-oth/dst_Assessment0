@@ -454,7 +454,9 @@ ball.</p>
 structure which we can index by balls or overs. In this section I aim to
 demonstrate that structure and investigate any interesting features.
 Bukiet [5] has an interesting approach to trying to model this time
-dependent structure of cricket by using Markov Chains.</p>
+dependent structure of cricket by using homogeneous Markov Chains. It
+suggests a Markov Chain were transition probabilities are the runs
+scored at ball t, and differs depending on who the batter is.</p>
 <pre class="r"><code>data %&gt;%
   mutate(over = ceiling(ball)) %&gt;%
   group_by(match_id, innings, over) %&gt;%
@@ -491,7 +493,12 @@ that the bowling team has an advantage, the run rate steeply increases,
 particularly in the first innings. This is because they are taking more
 risks to attempt to set a high a target for the other team as possible.
 It also increases in the second innings but less so as they can afford
-to be more conservative as they know what goal they need to reach.</p>
+to be more conservative as they know what goal they need to reach. This
+also demonstrates that the homogeneous Markov Chain model as suggested
+by Bukiet is inappropriate. They do, however, acknowledge this and
+suggest the inclusion of a score dependence element to make it a
+time-inhomogeneous Markov chain instead (ie transition probabiliies
+change with time but are still independent of the past).</p>
 <div id="risk-taking-throughout-the-match" class="section level3">
 <h3>Risk taking throughout the match</h3>
 <p>One way we can attempt to quantify risk taking/ shifts in strategy is

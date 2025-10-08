@@ -53,7 +53,7 @@ The majority of these NAs can be replaced with 0. For example, where an NA is in
 
 The ball-by-ball (bbb) cricket data is inherently an event sequence
 structure which we can index by balls or overs. In this section I aim to
-demonstrate that structure and investigate any interesting features. Bukiet [5] has an interesting approach to trying to model this time dependent structure of cricket by using Markov Chains. 
+demonstrate that structure and investigate any interesting features. Bukiet [5] has an interesting approach to trying to model this time dependent structure of cricket by using homogeneous Markov Chains. It suggests a Markov Chain were transition probabilities are the runs scored at ball t, and differs depending on who the batter is.
 
 ```{r}
 data %>%
@@ -91,7 +91,7 @@ that the bowling team has an advantage, the run rate steeply increases,
 particularly in the first innings. This is because they are taking more
 risks to attempt to set a high a target for the other team as possible.
 It also increases in the second innings but less so as they can afford
-to be more conservative as they know what goal they need to reach.
+to be more conservative as they know what goal they need to reach. This also demonstrates that the homogeneous Markov Chain model as suggested by Bukiet is inappropriate. They do, however, acknowledge this and suggest the inclusion of a score dependence element to make it a time-inhomogeneous Markov chain instead (ie transition probabiliies change with time but are still independent of the past).
 
 ### Risk taking throughout the match
 
