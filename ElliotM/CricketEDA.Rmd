@@ -3,6 +3,7 @@ title: "Exploratory Data Analysis for ODI Cricket"
 author: "Elliot Moore"
 date: "2025-10-05"
 output: html_document
+bibliography: references.bib
 ---
 
 ```{r setup, include=FALSE}
@@ -33,7 +34,7 @@ go for boundaries (fours and sixes). The final powerplay favours the bowling tea
 and a maximum of 5 fielders are allowed outside the 30-yard circle.
 
 
-```{r}
+```{r, warning=FALSE,results='hide'}
 # Here we load the required libraries
 library(fs)
 library(readr)
@@ -43,27 +44,35 @@ library(dplyr)
 library(cricketdata)
 ```
 
-```{r}
+
+```{r, warning=FALSE, results='hide',message=FALSE}
 # Here we get our data
 data <- read_csv(path_wd("..", "data", "processed", "odi_bbb_recent.csv"))
 
 ```
 
-
 ```{r}
 glimpse(data)
 ```
 
+## Toss Decision
 
 Firstly, I wanted to check to see if winning the toss, that is the coin toss to
 determine which team chooses to bat first or bowl first, has any impact on the 
 match outcome.
 
+Most cricket matches on the TV start with the pundits talking about how batting
+or bowling first is a big advantage based on the weather and pitch condition.
+
+I looked online for papers relating to this and did find that a small advantage 
+was found in [@sood2016fairlyrandomimpactwinning] - the team that wins the toss
+was found to win more often. I would like to explore whether choosing to bat 
+first or bowl first has an impact on the match outcome.
+
 Since we have ball by ball data, it's a good idea to summarise the data first, 
 only keeping the key information.
 
 
-## Toss Decision
 ```{r, Heatmap 1}
 heatmap_data <- data %>%
   distinct(match_id, toss_winner, toss_decision, winner) %>%
@@ -86,12 +95,14 @@ ggplot(heatmap_data, aes(x = toss_decision, y = toss_winner_won, fill = perc)) +
 
 ```
 
-
+Here, NA is no match outcome - some matches are rained off or cancelled for other
+reasons. Therefore I decided to remove this from the heatmap as it is not
+useful for our analysis.
 
 ```{r, Toss Winning Heatmap}
 heatmap_data <- data %>%
   distinct(match_id, toss_winner, toss_decision, winner) %>%
-  # 🔹 Remove matches with no result
+  # Remove matches with no result
   filter(!is.na(winner)) %>%
   mutate(toss_winner_won = ifelse(toss_winner == winner, "Yes", "No")) %>%
   count(toss_decision, toss_winner_won) %>%
@@ -101,7 +112,7 @@ heatmap_data <- data %>%
 ggplot(heatmap_data, aes(x = toss_decision, y = toss_winner_won, fill = perc)) +
   geom_tile(color = "white") +
   geom_text(aes(label = sprintf("%.1f%%", perc)), color = "white", size = 5) +
-  scale_fill_gradient(low = "red", high = "orange") +
+  scale_fill_gradient(low = "red", high = "green") +
   labs(
     title = "Toss Decision vs. Match Outcome",
     x = "Decision After Winning Toss",
@@ -110,15 +121,12 @@ ggplot(heatmap_data, aes(x = toss_decision, y = toss_winner_won, fill = perc)) +
   ) +
   theme_minimal()
 
-
-
 ```
 
+Here we can see a 3.4% difference favouring the decision to field first.
 
 
-Here, NA is no match outcome - some matches are rained off or cancelled for other
-reasons. Therefore I decided to remove this from the heatmap as it is not
-useful data. The heatmap shows us that deciding to field first is the better decision
+The heatmap shows us that deciding to field first is the better decision
 when all other factors are ignored - weather and pitch quality are usually the 
 main factors considered by teams.
 
@@ -159,10 +167,13 @@ powerplay_summary %>%
   theme_minimal()
 
 ```
-This distribution shows very clearly that teams that score more boundaries in the
-batting powerplay tend to win more matches - the green distribution is left skewed.
 
-Let's also look at wickets during the batting powerplay - if a team loses more 
+This distribution shows very clearly that teams that score more boundaries in the
+*batting powerplay* tend to win more matches - the green distribution shows teams that
+win matches. Therefore boundaries during the powerplay is likely to be a useful
+indicator of which team will win.
+
+Let's also look at wickets during the *bowling powerplay* - if a team loses more 
 wickets early on in the game, we'd expect them to lose the match on average.
 
 ```{r}
@@ -202,8 +213,42 @@ powerplay_summary %>%
        y = "Win Probability") +
   theme_minimal()
 
-
-
 ```
 This plot shows the rapid and clear decline of win probability as the batting team
-loses wickets in the powerplay.
+loses wickets in the *bowling powerplay*. If a team loses 5 wickets, their chance
+of winning drops to just 10%, and any more leads to a certain loss.
+
+## Discussion
+
+In this EDA, I have worked with two sets of structured data - match data with 
+features such as venue, teams and winner and ball-by-ball data where each row 
+represents one delivery, with information on batter, bowler, runs scored etc.
+
+The main data resource used was the $\texttt{cricketdata}$ package, and the 
+software used for plotting and data manipulation was mainly $\texttt{dyplr}$, 
+$\texttt{ggplot2}$ and $\texttt{tidyverse}$.
+
+The types of problems the resources solve can be predictive problems, e.g. using 
+the ball-by-ball data to predicting match outcome based on performance in the 
+powerplay.  
+
+The approach used in this EDA is very generlisable to other datasets - one could
+analyse financial data or any other sports data in a similar way.
+
+I personally found that using GitHub was a positive experience for collaboration,
+we worked together on this project in person and remotely, therefore being able 
+to push your update and fetch other people's updates was easy and useful. The 
+main concern I had with GitHub was that when two people were working on a file at 
+the same time - e.g. the report - we faced issues.
+
+
+
+
+
+
+## References
+
+For this EDA I used the package $\texttt{ggplot2}$ extensively so I have referenced the
+documentation below
+
+ggplot documentation: https://ggplot2.tidyverse.org/reference/index.html

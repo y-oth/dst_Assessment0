@@ -1,0 +1,263 @@
+---
+title: "Cricket Data EDA"
+author: "Youssef Othman"
+date: "2025-10-05"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+
+In this Markdown we will look at data from Men's ODI matches from 2015 onwards.
+
+####  Required Libraries:
+```{r}
+required_packages <- c(
+  "readr",      
+  "dplyr",      
+  "ggplot2"     
+)
+
+# Install any missing packages
+for (pkg in required_packages) {
+  if (!require(pkg, character.only = TRUE)) {
+    install.packages(pkg, dependencies = TRUE)
+    library(pkg, character.only = TRUE)
+  } else {
+    library(pkg, character.only = TRUE)
+  }
+}
+```
+
+#### Load Data and check missing values :
+
+We load the processed Mens ODI ball by ball data from 2015 onwards:
+
+```{r}
+# Relative path from the project root (Make sure to set your working directory)
+data_file <- "data/odi_bbb_recent.csv"
+
+# Read the CSV into a dataframe
+odi_bbb_recent <- read_csv(data_file,show_col_types = FALSE)
+
+# Check columns of the data
+glimpse(odi_bbb_recent)
+
+```
+
+
+We observe the dimensions of the data and the number of missing values:
+```{r}
+odi <- odi_bbb_recent
+  
+# Number of rows and columns
+dim(odi)
+
+# Count unique matches
+n_matches <- odi %>% summarise(n_matches = n_distinct(match_id))
+n_matches
+
+# Check missing values by column
+colSums(is.na(odi))
+
+```
+
+## Initial Exploration:
+
+We check how consistent our data is across the 10 seasons of cricket we are 
+considering .
+```{r}
+odi %>%
+  count(season) %>%
+  ggplot(aes(x = season, y = n)) +
+  geom_col(fill = "steelblue") +
+  labs(
+    title = "Number of ODI balls per season",
+    x = "Season",
+    y = "Number of balls recorded"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+
+Here the low number of balls in 2020 and 2020/21 being due to the 
+impact of the COVID-19 pandemic.
+
+We explore the Top 10 ODI Teams by Runs to see if there is a stark difference
+between competitors.
+```{r}
+odi %>%
+  group_by(batting_team) %>%
+  summarise(total_runs = sum(runs_off_bat + coalesce(extras, 0), na.rm = TRUE)) %>%
+  arrange(desc(total_runs)) %>%
+  slice_head(n = 10) %>%
+  ggplot(aes(x = reorder(batting_team, total_runs), y = total_runs)) +
+  geom_col(fill = "darkgreen") +
+  coord_flip() +
+  labs(
+    title = "Top 10 ODI Teams by Total Runs (2015–present)",
+    x = "Team",
+    y = "Total Runs"
+  ) +
+  theme_minimal()
+
+```
+
+
+It seems that the top teams are not dominating the game and there is a fair 
+amount of competition in between teams.
+
+We check for the competition between the best batters:
+```{r}
+odi %>%
+  group_by(striker) %>%
+  summarise(total_runs = sum(runs_off_bat, na.rm = TRUE)) %>%
+  arrange(desc(total_runs)) %>%
+  slice_head(n = 10) %>%
+  ggplot(aes(x = reorder(striker, total_runs), y = total_runs)) +
+  geom_col(fill = "orange") +
+  coord_flip() +
+  labs(
+    title = "Top 10 Batters by Runs (2015–present)",
+    x = "Batter",
+    y = "Total Runs"
+  ) +
+  theme_minimal()
+
+```
+
+
+Here the top 2 batters seem to be dominating in total runs comparitively to the 
+other 8 batters but this might be due to factors such as injury resistance, 
+number of games played etc. . Would be interesting to investigate this plot 
+further and look at the difference in the top 2 players compared to the others.
+
+
+
+## Bowling Style vs. Number of runs:
+
+We look at if bowling style affects the number of runs.
+```{r}
+# Average runs conceded by bowling style
+odi %>%
+  group_by(bowling_style) %>%
+  summarise(avg_runs_per_ball = mean(runs_off_bat + coalesce(extras, 0), na.rm = TRUE)) %>%
+  arrange(desc(avg_runs_per_ball)) %>%
+  ggplot(aes(x = reorder(bowling_style, avg_runs_per_ball), y = avg_runs_per_ball)) +
+  geom_col() +
+  coord_flip() +
+  labs(
+    title = "Average Runs per Ball by Bowling Style",
+    x = "Bowling Style",
+    y = "Avg Runs per Ball"
+  ) +
+  theme_minimal()
+
+```
+
+Looking at this plot we can see a clear outlier with left-arm fast being the 
+worst bowling style as it concedes the most runs.
+
+
+
+We now look to improve this plot to check if this outlier is caused by 
+insufficient data and we check it's relation to the mean of the data. We colour 
+code the above average bowling economy in red and the below average in blue.
+```{r, fig.width=10, fig.height=12}
+
+# Calculate statistics for bowling styles
+bowling_stats <- odi %>%
+  group_by(bowling_style) %>%
+  summarise(
+    avg_runs_per_ball = mean(runs_off_bat + coalesce(extras, 0), na.rm = TRUE),
+    balls_bowled = n(),
+    .groups = 'drop'
+  ) %>%
+  arrange(desc(avg_runs_per_ball))
+
+# Calculate overall mean
+overall_mean <- mean(bowling_stats$avg_runs_per_ball)
+# Calculate dynamic height based on number of categories
+n_styles <- nrow(bowling_stats)
+plot_height <- max(8, n_styles * 0.4)  # At least 8 inches, or 0.4 inches per style
+
+# Create enhanced plot
+p <- ggplot(bowling_stats, aes(x = reorder(bowling_style, avg_runs_per_ball), 
+                          y = avg_runs_per_ball)) +
+  
+  # Add horizontal line for overall mean
+  geom_hline(yintercept = overall_mean, 
+             linetype = "dashed", 
+             color = "#E74C3C", 
+             linewidth = 0.8,
+             alpha = 0.7) +
+  
+  # Bars with conditional coloring (above/below mean)
+  geom_col(aes(fill = avg_runs_per_ball > overall_mean), 
+           width = 0.7,
+           show.legend = FALSE) +
+  
+  # Add value labels on bars
+  geom_text(aes(label = sprintf("%.2f", avg_runs_per_ball)),
+            hjust = -0.2,
+            size = 4,
+            color = "#2C3E50",
+            fontface = "bold") +
+  
+  # Add sample size labels (balls bowled)
+  geom_text(aes(label = paste0("n=", balls_bowled)),
+            hjust = 1.1,
+            size = 3.2,
+            color = "white",
+            alpha = 0.8) +
+  
+  # Color scheme
+  scale_fill_manual(values = c("TRUE" = "#E74C3C", "FALSE" = "#3498DB")) +
+  
+  # Flip coordinates
+  coord_flip(clip = "off") +
+  
+  # Expand y-axis to show labels
+  scale_y_continuous(expand = expansion(mult = c(0.02, 0.15)),
+                     breaks = seq(0, 2, 0.2)) +
+  
+  # Labels and title
+  labs(
+    title = "Bowling Economy: Average Runs Conceded per Ball",
+    subtitle = paste0("ODI Cricket Analysis  •  Overall Mean: ", 
+                     sprintf("%.2f", overall_mean), " runs/ball"),
+    x = NULL,
+    y = "Average Runs per Ball",
+    caption = "Red bars indicate above-average economy; Blue bars below average\nn = number of balls bowled"
+  ) +
+  
+  # Theme customization
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title = element_text(face = "bold", size = 17, margin = margin(b = 5)),
+    plot.subtitle = element_text(size = 12, color = "#7F8C8D", margin = margin(b = 15)),
+    plot.caption = element_text(size = 10, color = "#95A5A6", hjust = 0, 
+                               margin = margin(t = 15)),
+    axis.text.y = element_text(size = 11, color = "#2C3E50", margin = margin(r = 5)),
+    axis.text.x = element_text(size = 11, color = "#2C3E50"),
+    axis.title.x = element_text(face = "bold", size = 12, margin = margin(t = 10)),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.grid.major.x = element_line(color = "#ECF0F1", linewidth = 0.5),
+    plot.margin = margin(20, 20, 20, 20)
+  )
+
+# Print the plot with appropriate dimensions for HTML
+print(p)
+```
+
+
+Looking at this plot we notice that there is a wide range of number of balls 
+bowled per playing style and this plot does not currently factor for that 
+variance.
